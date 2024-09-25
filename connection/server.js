@@ -20,50 +20,50 @@ console.log(db, 'db')
 // express dotenv cors crypto sha1 body-parser nodemailer mysql multer path wkhtmltopdf fs nodemon bcrypt axios puppeteer
 
 
-// const transporter = nodemailer.createTransport({
-//   host: 'mail.urbanitsolution.com',
-//   port: 587,
-//   secure: false,
-//   auth: {
-//     user: 'saklain@urbanitsolution.com',
-//     pass: 'saklain',
-//   },
-//   tls: {
-//     rejectUnauthorized: false,
-//   },
-// });
+const transporter = nodemailer.createTransport({
+  host: 'mail.urbanitsolution.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: 'saklain@urbanitsolution.com',
+    pass: 'saklain',
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
 
-// app.post('/send-otp/email', async (req, res) => {
-//   try {
-//     const { email, msg, otp } = req.body;
-//     // const otp = generateRandomOTP();
+app.post('/send-otp/email', async (req, res) => {
+  try {
+    const { email, msg, otp } = req.body;
+    // const otp = generateRandomOTP();
 
-//     const saveOtpQuery = 'UPDATE users SET email_verifiy_code = ? WHERE email = ?';
-//     await db.query(saveOtpQuery, [otp, email]);
+    const saveOtpQuery = 'UPDATE users SET email_verifiy_code = ? WHERE email = ?';
+    await db.query(saveOtpQuery, [otp, email]);
 
 
-//     const mailOptions = {
-//       from: `saklain@urbanitsolution.com`,
-//       to: email,
-//       subject: 'OTP Verification',
-//       text: msg || `Your OTP is ${otp}`,
-//     };
+    const mailOptions = {
+      from: `saklain@urbanitsolution.com`,
+      to: email,
+      subject: 'OTP Verification',
+      text: msg || `Your OTP is ${otp}`,
+    };
 
-//     // Send the email
-//     transporter.sendMail(mailOptions, (error, info) => {
-//       if (error) {
-//         console.error('Error:', error.message);
-//         res.status(500).json({ error: 'Failed to send OTP via email' });
-//       } else {
-//         console.log('Email sent:', info.response);
-//         res.status(200).json({ success: true });
-//       }
-//     });
-//   } catch (error) {
-//     console.error('Error:', error.message);
-//     res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// });
+    // Send the email
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Error:', error.message);
+        res.status(500).json({ error: 'Failed to send OTP via email' });
+      } else {
+        console.log('Email sent:', info.response);
+        res.status(200).json({ success: true });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 
 function generateRandomOTP() {
