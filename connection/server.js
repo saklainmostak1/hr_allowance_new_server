@@ -17,7 +17,7 @@ const db = require('../connection/config/database');
 console.log(db, 'db')
 
 
-// express dotenv cors crypto sha1 body-parser nodemailer mysql multer path wkhtmltopdf fs nodemon bcrypt axios
+// express dotenv cors crypto sha1 body-parser nodemailer mysql multer path wkhtmltopdf fs nodemon bcrypt axios puppeteer
 
 
 // const transporter = nodemailer.createTransport({
