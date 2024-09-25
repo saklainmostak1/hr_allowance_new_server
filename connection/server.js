@@ -104,7 +104,7 @@ app.post('/convertToPDF', async (req, res) => {
 
 
 // http://192.168.0.107:5002/allUsers?email=abutaher01725@gmail.com
-const usersModel = require('../app/model/Admin/usersListModel')
+const usersModel = require('../model/Admin/usersListModel')
 app.get('/user/allUser', usersModel.users_list)
 app.get('/user/allUser/:id', usersModel.users_single)
 app.get('/users', usersModel.users_controller)
@@ -146,7 +146,7 @@ app.get('/user/role', usersModel.users_role_permission_list);
 app.get('/user-role/btn', usersModel.usersRoleBtn);
 
 
-const adminPageList = require('../app/model/Admin/module_info/adminPageListModel')
+const adminPageList = require('../model/Admin/module_info/adminPageListModel')
 app.get('/admin/allAdmin', adminPageList.getAllAdminPageList)
 
 app.get('/admin/admin_panel_settings', adminPageList.admin_panel_settings_list)
@@ -164,7 +164,7 @@ app.delete('/admin/allAdmin/:id', adminPageList.module_info_delete)
 app.post('/admin/delete/:id', adminPageList.module_info_delete)
 
 
-const ModuleInfo = require('../app/model/Admin/module_info/moduleInfo')
+const ModuleInfo = require('../model/Admin/module_info/moduleInfo')
 app.post('/admin/allAdmin/', ModuleInfo.module_info_create)
 app.post('/admin/copy/', ModuleInfo.module_info_copy)
 app.post('/updateAdminList/:id', ModuleInfo.module_info_update)
@@ -184,12 +184,12 @@ app.get('/admin/users_role/users_role_permission/:id', ModuleInfo.users_role_per
 
 
 
-const faIcons = require('../app/model/Admin/faIconsModel')
+const faIcons = require('../model/Admin/faIconsModel')
 app.get('/faIcons', faIcons.getAllIconList)
 
 
 
-const schoolShift = require('../app/model/Admin/school_shift/school_shiftt')
+const schoolShift = require('../model/Admin/school_shift/school_shiftt')
 app.post('/Admin/school_shift/school_shift_create', schoolShift.school_shiftt_create)
 app.get('/Admin/school_shift/school_shift_all', schoolShift.school_shift_list)
 app.post('/Admin/school_shift/school_shift_delete/:id', schoolShift.school_shift_delete)
@@ -198,7 +198,7 @@ app.post('/Admin/school_shift/school_shift_edit/:id', schoolShift.school_shift_u
 app.get('/Admin/school_shift/school_shift_all/:pageNo/:perPage', schoolShift.school_shift_list_paigination)
 
 
-const payRoll = require('../app/model/Admin/pay_roll_model/pay_roll_model')
+const payRoll = require('../model/Admin/pay_roll_model/pay_roll_model')
 app.post('/Admin/pay_roll/pay_roll_create', payRoll.payroll_create)
 app.get('/Admin/pay_roll/pay_roll_all', payRoll.payroll_list)
 app.post('/Admin/pay_roll/pay_roll_delete/:id', payRoll.payroll_delete)
@@ -206,7 +206,7 @@ app.post('/Admin/pay_roll/pay_roll_edit/:id', payRoll.payroll_update)
 app.get('/Admin/pay_roll/pay_roll_all/:id', payRoll.payroll_single)
 app.get('/Admin/pay_roll/pay_roll_list/:pageNo/:perPage', payRoll.payroll_list_paigination)
 
-const EmployeeModel = require('../app/model/Admin/employee_model/employee_model')
+const EmployeeModel = require('../model/Admin/employee_model/employee_model')
 app.get('/Admin/education/education_list', EmployeeModel.education_name_list)
 app.get('/Admin/divisions/divisions_list', EmployeeModel.divisions_list)
 app.get('/Admin/district/district_list', EmployeeModel.districts_list)
@@ -241,7 +241,7 @@ app.post('/Admin/employee/employee_list_print', EmployeeModel.employee_list_prin
 
 
 
-const CompanyModel = require('../app/model/Admin/company_model/company_model')
+const CompanyModel = require('../model/Admin/company_model/company_model')
 app.post('/Admin/company/company_create', CompanyModel.company_create)
 app.get('/Admin/company/company_all', CompanyModel.company_list)
 app.post('/Admin/company/company_edit/:id', CompanyModel.company_update)
@@ -249,7 +249,7 @@ app.get('/Admin/company/company_all/:id', CompanyModel.company_single)
 app.post('/Admin/company/company_delete/:id', CompanyModel.company_delete)
 app.get('/Admin/company/company_list/:pageNo/:perPage', CompanyModel.company_list_paigination)
 
-const BranceModel = require('../app/model/Admin/brance_model/brance_model')
+const BranceModel = require('../model/Admin/brance_model/brance_model')
 app.get('/Admin/company_type/company_type_all', BranceModel.company_type_list)
 app.get('/Admin/branch/branch_all', BranceModel.brance_list)
 app.post('/Admin/branch/branch_create', BranceModel.branch_create)
@@ -258,7 +258,7 @@ app.post('/Admin/branch/branch_edit/:id', BranceModel.branch_update)
 app.post('/Admin/branch/branch_delete/:id', BranceModel.branch_delete)
 app.get('/Admin/branch/branch_list/:pageNo/:perPage', BranceModel.branch_list_paigination)
 
-const MobileAllwoanceModel = require('../app/model/Admin/mobile_allowance_model/mobile_allowance_model')
+const MobileAllwoanceModel = require('../model/Admin/mobile_allowance_model/mobile_allowance_model')
 app.post('/Admin/mobile_allowance/mobile_allowance_create', MobileAllwoanceModel.mobile_allowance_create)
 app.get('/Admin/mobile_allowance/mobile_allowance_all', MobileAllwoanceModel.mobile_allowance_list)
 app.get('/Admin/mobile_allowance/mobile_allowance_all/:id', MobileAllwoanceModel.mobile_allowance_single)
@@ -267,7 +267,7 @@ app.post('/Admin/mobile_allowance/mobile_allowance_delete/:id', MobileAllwoanceM
 app.get('/Admin/mobile_allowance/mobile_allowance_list/:pageNo/:perPage', MobileAllwoanceModel.mobile_allowance_list_paigination)
 
 
-const TransportAllwoanceModel = require('../app/model/Admin/transport_allowance_model/transport_allowance_model')
+const TransportAllwoanceModel = require('../model/Admin/transport_allowance_model/transport_allowance_model')
 
 app.post('/Admin/transport_allowance/transport_allowance_create', TransportAllwoanceModel.transport_allowance_create)
 app.get('/Admin/transport_allowance/transport_allowance_all', TransportAllwoanceModel.transport_allowance_list)
@@ -277,7 +277,7 @@ app.post('/Admin/transport_allowance/transport_allowance_delete/:id', TransportA
 app.get('/Admin/transport_allowance/transport_allowance_list/:pageNo/:perPage', TransportAllwoanceModel.transport_allowance_list_paigination)
 
 
-const OfficeVisitModel = require('../app/model/Admin/office_visit_model/office_visit_model')
+const OfficeVisitModel = require('../model/Admin/office_visit_model/office_visit_model')
 
 app.post('/Admin/office_visit/office_visit_create', OfficeVisitModel.office_visit_creates)
 app.get('/Admin/office_visit/office_visit_all/:id', OfficeVisitModel.office_visit_single)
@@ -306,7 +306,7 @@ app.post('/Admin/office_visit/office_visit_remarks_search/:id', OfficeVisitModel
 app.post('/Admin/office_visit/office_visit_person_search/:id', OfficeVisitModel.office_visit_person_search)
 
 
-const expenceCategoryModel = require(`../app/model/Admin/expense_category_model/expense_category_model`)
+const expenceCategoryModel = require(`../model/Admin/expense_category_model/expense_category_model`)
 app.post('/Admin/expence_category/expence_category_create', expenceCategoryModel.expence_category_create);
 app.get('/Admin/expence_category/expence_category_all', expenceCategoryModel.expence_category_list);
 app.get('/Admin/expence_category/expence_category_all/:id', expenceCategoryModel.expense_category_single);
@@ -315,7 +315,7 @@ app.post('/Admin/expence_category/expence_category_delete/:id', expenceCategoryM
 app.get('/Admin/expence_category/expence_category_list_paigination/:pageNo/:perPage', expenceCategoryModel.expense_category_list_paigination);
 
 
-const expenceModel = require(`../app/model/Admin/expense_model/expense_model`)
+const expenceModel = require(`../model/Admin/expense_model/expense_model`)
 app.post('/Admin/expense/expense_create', expenceModel.expence_create)
 app.post('/Admin/expense/expense_single_pdf', expenceModel.expense_single_pdf)
 app.post('/Admin/expense/expense_search', expenceModel.expense_search)
@@ -329,7 +329,7 @@ app.post('/Admin/expense/expense_pdf', expenceModel.expense_pdf)
 
 
 
-const income_category_model = require(`../app/model/Admin/income_category_model/income_category_model`)
+const income_category_model = require(`../model/Admin/income_category_model/income_category_model`)
 app.post('/Admin/income_category/income_category_create', income_category_model.income_category_create);
 app.get('/Admin/income_category/income_category_all', income_category_model.income_category_list);
 app.get('/Admin/income_category/income_category_all/:id', income_category_model.income_category_single);
@@ -338,7 +338,7 @@ app.post('/Admin/income_category/income_category_delete/:id', income_category_mo
 app.get('/Admin/income_category/income_category_list_paigination/:pageNo/:perPage', income_category_model.income_category_list_paigination);
 
 
-const incomeModel = require(`../app/model/Admin/income_model/income_model`);
+const incomeModel = require(`../model/Admin/income_model/income_model`);
 app.post('/Admin/income/income_create', incomeModel.income_create);
 app.get('/Admin/income/income_list', incomeModel.income_category_list);
 app.post('/Admin/income/income_search', incomeModel.income_search);
@@ -350,12 +350,12 @@ app.post('/Admin/income/income_update/:id', incomeModel.income_update);
 
 
 
-const supplierModel = require(`../app/model/Admin/supplier_model/supplier_model`)
+const supplierModel = require(`../model/Admin/supplier_model/supplier_model`)
 app.get('/Admin/supplier/supplier_list', supplierModel.supplier_address_list)
 app.get('/Admin/supplier/due_amount/:supplier_id', supplierModel.supplier_due_amount)
 
 
-const holidayCategoryModel = require(`../app/model/Admin/holiday_category_model/holiday_category_model`)
+const holidayCategoryModel = require(`../model/Admin/holiday_category_model/holiday_category_model`)
 app.post('/Admin/holiday_category/holiday_category_create', holidayCategoryModel.holiday_category_create)
 app.get('/Admin/holiday_category/holiday_category_all', holidayCategoryModel.holiday_category_list)
 app.get('/Admin/holiday_category/holiday_category_all/:id', holidayCategoryModel.holiday_category_single)
@@ -364,7 +364,7 @@ app.post('/Admin/holiday_category/holiday_category_delete/:id', holidayCategoryM
 app.get('/Admin/holiday_category/holiday_category_list/:pageNo/:perPage', holidayCategoryModel.holiday_category_list_paigination)
 
 
-const yearlyHolidayModel = require(`../app/model/Admin/yearly_holiday_modal/yearly_holiday_modal`)
+const yearlyHolidayModel = require(`../model/Admin/yearly_holiday_modal/yearly_holiday_modal`)
 app.post('/Admin/yearly_holiday/yearly_holiday_create', yearlyHolidayModel.yearly_holiday_create)
 app.get('/Admin/yearly_holiday/yearly_holiday_all', yearlyHolidayModel.yearly_holiday_list)
 app.get('/Admin/yearly_holiday/yearly_holiday_all_list', yearlyHolidayModel.yearly_holiday_list_all)
@@ -375,7 +375,7 @@ app.get('/Admin/yearly_holiday/yearly_holiday_list/:pageNo/:perPage', yearlyHoli
 app.post('/Admin/yearly_holiday/yearly_holiday_edit/:id', yearlyHolidayModel.yearly_holiday_update)
 
 
-const leaveApplicationModel = require(`../app/model/Admin/leave_application_model/leave_application_model`)
+const leaveApplicationModel = require(`../model/Admin/leave_application_model/leave_application_model`)
 app.post('/Admin/leave_application/leave_application_create', leaveApplicationModel.leave_application_create)
 app.get('/Admin/leave_application/leave_application_all', leaveApplicationModel.leave_application_list)
 app.get('/Admin/leave_application/leave_application_all/:id', leaveApplicationModel.leave_application_single)
@@ -388,7 +388,7 @@ app.get('/Admin/leave_category/leave_category_list', leaveApplicationModel.leave
 app.post('/Admin/leave_application/leave_application_edit_status/:id', leaveApplicationModel.leave_application_update_status)
 app.post('/Admin/leave_application/leave_application_pdf', leaveApplicationModel.leave_application_pdf)
 
-const SalaryModel = require(`../app/model/Admin/salary_model/salary_model`)
+const SalaryModel = require(`../model/Admin/salary_model/salary_model`)
 
 app.get('/Admin/salary/salary_all', SalaryModel.employe_joining_list_salary)
 app.post('/Admin/salary/salary_search', SalaryModel.employe_joining_list_salary_search)
@@ -403,7 +403,7 @@ app.get('/Admin/salary/salary_details/:id', SalaryModel.employe_list_salary_sing
 app.post('/Admin/salary/salary_edit/:id', SalaryModel.employee_salary_update)
 
 
-const AccountHeadTypeModel = require(`../app/model/Admin/account_head_type_model/account_head_type_model`)
+const AccountHeadTypeModel = require(`../model/Admin/account_head_type_model/account_head_type_model`)
 app.post('/Admin/account_head_type/account_head_type_create', AccountHeadTypeModel.account_head_type_create)
 app.get('/Admin/account_head_type/account_head_type_all', AccountHeadTypeModel.account_head_type_list)
 app.get('/Admin/account_head_type/account_head_type_all/:id', AccountHeadTypeModel.account_head_type_single)
@@ -412,7 +412,7 @@ app.post('/Admin/account_head_type/account_head_type_edit/:id', AccountHeadTypeM
 app.get('/Admin/account_head_type/account_head_type_all_paigination/:pageNo/:perPage', AccountHeadTypeModel.account_head_type_list_paigination)
 
 
-const AccountHeadModel = require(`../app/model/Admin/account_head/account_head_model`)
+const AccountHeadModel = require(`../model/Admin/account_head/account_head_model`)
 app.post('/Admin/account_head/account_head_create', AccountHeadModel.account_head_create)
 app.get('/Admin/account_head/account_head_all', AccountHeadModel.account_head_list)
 app.post('/Admin/account_head/account_head_delete/:id', AccountHeadModel.account_head_delete)
@@ -422,7 +422,7 @@ app.get('/Admin/account_head/account_head_list', AccountHeadModel.account_head_l
 app.get('/Admin/account_head/account_head_list_paigination/:pageNo/:perPage', AccountHeadModel.account_head_list_paigination)
 
 //  Jewel Vai
-const GenderModel = require("../app/model/Admin/gender_model/gender_model");
+const GenderModel = require("../model/Admin/gender_model/gender_model");
 app.post("/Admin/gender/gender_create", GenderModel.gender_create);
 app.get("/Admin/gender/gender_all", GenderModel.gender_list);
 app.get("/Admin/gender/gender_all/:id", GenderModel.gender_single);
@@ -435,7 +435,7 @@ app.get(
   GenderModel.gender_list_paigination
 );
 
-const LeaveCategoryModel = require("../app/model/Admin/leave_category_model/leave_category_model.js");
+const LeaveCategoryModel = require("../model/Admin/leave_category_model/leave_category_model.js");
 
 app.post(
   "/Admin/leave_category/leave_category_create",
@@ -462,7 +462,7 @@ app.post(
   LeaveCategoryModel.leave_category_delete
 );
 
-const BloodGroupModel = require("../app/model/Admin/blood_group_model/blood_group_model.js");
+const BloodGroupModel = require("../model/Admin/blood_group_model/blood_group_model.js");
 
 // app.get(
 //   "/Admin/blood_group/blood_group_all/:pageNo/:perPage",
@@ -491,7 +491,7 @@ app.get(
 );
 
 
-const CompanyTypeModel = require("../app/model/Admin/company_type_model/company_type_model.js");
+const CompanyTypeModel = require("../model/Admin/company_type_model/company_type_model.js");
 app.post(
   "/Admin/company_type/company_type_create",
   CompanyTypeModel.company_type_create
@@ -521,7 +521,7 @@ app.get(
 
 
 // Designation
-const DesignationModel = require("../app/model/Admin/designation_model/designation_model.js");
+const DesignationModel = require("../model/Admin/designation_model/designation_model.js");
 
 app.post(
   "/Admin/designation/designation_create",
@@ -551,7 +551,7 @@ app.get(
 );
 
 // Profession
-const ProfessionModel = require("../app/model/Admin/profession_model/profession_model.js");
+const ProfessionModel = require("../model/Admin/profession_model/profession_model.js");
 
 app.post(
   "/Admin/profession/profession_create",
@@ -578,7 +578,7 @@ app.get(
 );
 
 
-const EducationModel = require("../app/model/Admin/education_model/education_model.js");
+const EducationModel = require("../model/Admin/education_model/education_model.js");
 app.post("/Admin/education/education_create", EducationModel.education_create);
 app.get("/Admin/education/education_all", EducationModel.education_list);
 app.post(
@@ -597,7 +597,7 @@ app.get(
 );
 
 
-const ReligionModel = require("../app/model/Admin/religion_model/religion_model.js");
+const ReligionModel = require("../model/Admin/religion_model/religion_model.js");
 app.post("/Admin/religion/religion_create", ReligionModel.religion_create);
 app.get("/Admin/religion/religion_all", ReligionModel.religion_list);
 app.post("/Admin/religion/religion_edit/:id", ReligionModel.religion_update);
@@ -609,7 +609,7 @@ app.get("/Admin/religion/religion_list_paigination/:pageNo/:perPage", ReligionMo
 
 
 // PhotoGalleryCategoryModel
-const PhotoGalleryCategoryModel = require("../app/model/Admin/events_category_model/events_category.js");
+const PhotoGalleryCategoryModel = require("../model/Admin/events_category_model/events_category.js");
 
 app.post(
   "/Admin/events_category/events_category_create",
@@ -638,7 +638,7 @@ app.get(
   PhotoGalleryCategoryModel.photo_gallery_category_list_paigination
 );
 // NewsCategoryModel
-const NewsCategoryModel = require("../app/model/Admin/news_category_model/news_category.js");
+const NewsCategoryModel = require("../model/Admin/news_category_model/news_category.js");
 
 app.post(
   "/Admin/news_category/news_category_create",
@@ -668,7 +668,7 @@ app.get(
 );
 // NoticeCategoryModel
 
-const NoticeCategoryModel = require("../app/model/Admin/notice_category_model/notice_category.js");
+const NoticeCategoryModel = require("../model/Admin/notice_category_model/notice_category.js");
 
 app.post(
   "/Admin/notice_category/notice_category_create",
@@ -698,7 +698,7 @@ app.get(
 );
 // VideoGalleryCategoryModel
 
-const VideoGalleryCategoryModel = require("../app/model/Admin/video_category_model/video_category.js");
+const VideoGalleryCategoryModel = require("../model/Admin/video_category_model/video_category.js");
 
 app.post(
   "/Admin/video_gallery_category/video_gallery_category_create",
@@ -729,7 +729,7 @@ app.get(
 
 
 // newsmodel
-const NewsModel = require("../app/model/Admin/news_model/news_model.js");
+const NewsModel = require("../model/Admin/news_model/news_model.js");
 
 app.post("/Admin/news/news_create", NewsModel.news_create);
 app.get("/Admin/news/news_all", NewsModel.news_list);
@@ -746,7 +746,7 @@ app.get(
 );
 // NoticeModel
 
-const NoticeModel = require("../app/model/Admin/notice_model/notice_model.js");
+const NoticeModel = require("../model/Admin/notice_model/notice_model.js");
 
 app.post("/Admin/notice/notice_create", NoticeModel.notice_create);
 app.get("/Admin/notice/notice_all", NoticeModel.notice_list);
@@ -766,7 +766,7 @@ app.get(
 
 // VideoGalleryModel
 
-const VideoGalleryModel = require("../app/model/Admin/video_gallery_model/video_gallery.js");
+const VideoGalleryModel = require("../model/Admin/video_gallery_model/video_gallery.js");
 
 app.post(
   "/Admin/video_gallery/video_gallery_create",
@@ -796,7 +796,7 @@ app.get(
 
 
 
-const AttendanceModel = require('../app/model/Admin/attendance_model/attendance_model')
+const AttendanceModel = require('../model/Admin/attendance_model/attendance_model')
 app.post("/Admin/attendance/attendance_search", AttendanceModel.attendance_search
 );
 app.post("/Admin/attendance/attendance_create", AttendanceModel.attendance_create
@@ -856,7 +856,7 @@ app.get("/Admin/absent_sms/absent_create_manual_attendance", AttendanceModel.abs
 
 
 
-const smsApiModel = require('../app/model/Admin/sms_api_model/sms_api_model')
+const smsApiModel = require('../model/Admin/sms_api_model/sms_api_model')
 app.post("/Admin/sms_api/sms_api_create", smsApiModel.create_sms_api
 );
 app.get("/Admin/sms_api/sms_api_all", smsApiModel.sms_api_list
@@ -1995,7 +1995,7 @@ async function employeeAbsentSmsDataInsert(usersIdArr, smsMessages, absentDate, 
 
 
 
-const smsSettings = require('../app/model/Admin/sms_settings_model/smsSettings')
+const smsSettings = require('../model/Admin/sms_settings_model/smsSettings')
 app.post('/smsSettings', smsSettings.updateSmsSettings)
 app.get('/smsSettings/', smsSettings.getSmsSettings)
 // app.post('/api/all_table_data', smsSettings.all_table_data)
@@ -2019,11 +2019,11 @@ app.get('/get-css/:file', (req, res) => {
 
 
 
-const moduleSettings = require('../app/model/Admin/module_settings_model/module_settings_model')
+const moduleSettings = require('../model/Admin/module_settings_model/module_settings_model')
 app.post('/Admin/module_settings/module_settings_create', moduleSettings.module_setting_create)
 app.get('/Admin/module_settings/module_settings_all', moduleSettings.module_setting_list)
 
-const brandModel = require('../app/model/Admin/brand_model/brand_model')
+const brandModel = require('../model/Admin/brand_model/brand_model')
 const { default: axios } = require('axios')
 app.get('/status/all_status', brandModel.ListStatus)
 
