@@ -16,13 +16,91 @@ const db = require('../connection/config/database');
 
 console.log(db, 'db')
 
+const transporter = nodemailer.createTransport({
+  host: 'mail.urbanitsolution.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: 'saklain@urbanitsolution.com',
+    pass: 'saklain',
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
 
-// express dotenv cors crypto sha1 body-parser nodemailer mysql multer path wkhtmltopdf fs nodemon bcrypt axios
+app.post('/send-otp/email', async (req, res) => {
+  try {
+    const { email, msg, otp } = req.body;
+    // const otp = generateRandomOTP();
 
+    const saveOtpQuery = 'UPDATE users SET email_verifiy_code = ? WHERE email = ?';
+    await db.query(saveOtpQuery, [otp, email]);
+
+
+    const mailOptions = {
+      from: `saklain@urbanitsolution.com`,
+      to: email,
+      subject: 'OTP Verification',
+      text: msg || `Your OTP is ${otp}`,
+    };
+
+    // Send the email
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Error:', error.message);
+        res.status(500).json({ error: 'Failed to send OTP via email' });
+      } else {
+        console.log('Email sent:', info.response);
+        res.status(200).json({ success: true });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+function generateRandomOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+
+const puppeteer = require('puppeteer');
+app.post('/convertToPDF', async (req, res) => {
+  const { url } = req.body;
+
+  try {
+    // Launch Puppeteer
+    const browser = await puppeteer.launch({
+      headless: true,
+    });
+
+    // Create a new page
+    const page = await browser.newPage();
+
+    // Navigate to the specified URL
+    await page.goto(url, { waitUntil: 'networkidle2' });
+
+    // Generate a PDF buffer
+    const pdfBuffer = await page.pdf();
+
+    // Close the browser
+    await browser.close();
+
+    // Set the content type and send the PDF buffer as the response
+    res.contentType('application/pdf');
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error converting to PDF:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 
 // http://192.168.0.107:5002/allUsers?email=abutaher01725@gmail.com
-const usersModel = require('../model/Admin/usersListModel')
+const usersModel = require('../app/model/Admin/usersListModel')
 app.get('/user/allUser', usersModel.users_list)
 app.get('/user/allUser/:id', usersModel.users_single)
 app.get('/users', usersModel.users_controller)
@@ -64,7 +142,7 @@ app.get('/user/role', usersModel.users_role_permission_list);
 app.get('/user-role/btn', usersModel.usersRoleBtn);
 
 
-const adminPageList = require('../model/Admin/module_info/adminPageListModel')
+const adminPageList = require('../app/model/Admin/module_info/adminPageListModel')
 app.get('/admin/allAdmin', adminPageList.getAllAdminPageList)
 
 app.get('/admin/admin_panel_settings', adminPageList.admin_panel_settings_list)
@@ -82,7 +160,7 @@ app.delete('/admin/allAdmin/:id', adminPageList.module_info_delete)
 app.post('/admin/delete/:id', adminPageList.module_info_delete)
 
 
-const ModuleInfo = require('../model/Admin/module_info/moduleInfo')
+const ModuleInfo = require('../app/model/Admin/module_info/moduleInfo')
 app.post('/admin/allAdmin/', ModuleInfo.module_info_create)
 app.post('/admin/copy/', ModuleInfo.module_info_copy)
 app.post('/updateAdminList/:id', ModuleInfo.module_info_update)
@@ -102,12 +180,12 @@ app.get('/admin/users_role/users_role_permission/:id', ModuleInfo.users_role_per
 
 
 
-const faIcons = require('../model/Admin/faIconsModel')
+const faIcons = require('../app/model/Admin/faIconsModel')
 app.get('/faIcons', faIcons.getAllIconList)
 
 
 
-const schoolShift = require('../model/Admin/school_shift/school_shiftt')
+const schoolShift = require('../app/model/Admin/school_shift/school_shiftt')
 app.post('/Admin/school_shift/school_shift_create', schoolShift.school_shiftt_create)
 app.get('/Admin/school_shift/school_shift_all', schoolShift.school_shift_list)
 app.post('/Admin/school_shift/school_shift_delete/:id', schoolShift.school_shift_delete)
@@ -116,7 +194,7 @@ app.post('/Admin/school_shift/school_shift_edit/:id', schoolShift.school_shift_u
 app.get('/Admin/school_shift/school_shift_all/:pageNo/:perPage', schoolShift.school_shift_list_paigination)
 
 
-const payRoll = require('../model/Admin/pay_roll_model/pay_roll_model')
+const payRoll = require('../app/model/Admin/pay_roll_model/pay_roll_model')
 app.post('/Admin/pay_roll/pay_roll_create', payRoll.payroll_create)
 app.get('/Admin/pay_roll/pay_roll_all', payRoll.payroll_list)
 app.post('/Admin/pay_roll/pay_roll_delete/:id', payRoll.payroll_delete)
@@ -124,7 +202,7 @@ app.post('/Admin/pay_roll/pay_roll_edit/:id', payRoll.payroll_update)
 app.get('/Admin/pay_roll/pay_roll_all/:id', payRoll.payroll_single)
 app.get('/Admin/pay_roll/pay_roll_list/:pageNo/:perPage', payRoll.payroll_list_paigination)
 
-const EmployeeModel = require('../model/Admin/employee_model/employee_model')
+const EmployeeModel = require('../app/model/Admin/employee_model/employee_model')
 app.get('/Admin/education/education_list', EmployeeModel.education_name_list)
 app.get('/Admin/divisions/divisions_list', EmployeeModel.divisions_list)
 app.get('/Admin/district/district_list', EmployeeModel.districts_list)
@@ -159,7 +237,7 @@ app.post('/Admin/employee/employee_list_print', EmployeeModel.employee_list_prin
 
 
 
-const CompanyModel = require('../model/Admin/company_model/company_model')
+const CompanyModel = require('../app/model/Admin/company_model/company_model')
 app.post('/Admin/company/company_create', CompanyModel.company_create)
 app.get('/Admin/company/company_all', CompanyModel.company_list)
 app.post('/Admin/company/company_edit/:id', CompanyModel.company_update)
@@ -167,7 +245,7 @@ app.get('/Admin/company/company_all/:id', CompanyModel.company_single)
 app.post('/Admin/company/company_delete/:id', CompanyModel.company_delete)
 app.get('/Admin/company/company_list/:pageNo/:perPage', CompanyModel.company_list_paigination)
 
-const BranceModel = require('../model/Admin/brance_model/brance_model')
+const BranceModel = require('../app/model/Admin/brance_model/brance_model')
 app.get('/Admin/company_type/company_type_all', BranceModel.company_type_list)
 app.get('/Admin/branch/branch_all', BranceModel.brance_list)
 app.post('/Admin/branch/branch_create', BranceModel.branch_create)
@@ -176,7 +254,7 @@ app.post('/Admin/branch/branch_edit/:id', BranceModel.branch_update)
 app.post('/Admin/branch/branch_delete/:id', BranceModel.branch_delete)
 app.get('/Admin/branch/branch_list/:pageNo/:perPage', BranceModel.branch_list_paigination)
 
-const MobileAllwoanceModel = require('../model/Admin/mobile_allowance_model/mobile_allowance_model')
+const MobileAllwoanceModel = require('../app/model/Admin/mobile_allowance_model/mobile_allowance_model')
 app.post('/Admin/mobile_allowance/mobile_allowance_create', MobileAllwoanceModel.mobile_allowance_create)
 app.get('/Admin/mobile_allowance/mobile_allowance_all', MobileAllwoanceModel.mobile_allowance_list)
 app.get('/Admin/mobile_allowance/mobile_allowance_all/:id', MobileAllwoanceModel.mobile_allowance_single)
@@ -185,7 +263,7 @@ app.post('/Admin/mobile_allowance/mobile_allowance_delete/:id', MobileAllwoanceM
 app.get('/Admin/mobile_allowance/mobile_allowance_list/:pageNo/:perPage', MobileAllwoanceModel.mobile_allowance_list_paigination)
 
 
-const TransportAllwoanceModel = require('../model/Admin/transport_allowance_model/transport_allowance_model')
+const TransportAllwoanceModel = require('../app/model/Admin/transport_allowance_model/transport_allowance_model')
 
 app.post('/Admin/transport_allowance/transport_allowance_create', TransportAllwoanceModel.transport_allowance_create)
 app.get('/Admin/transport_allowance/transport_allowance_all', TransportAllwoanceModel.transport_allowance_list)
@@ -195,7 +273,7 @@ app.post('/Admin/transport_allowance/transport_allowance_delete/:id', TransportA
 app.get('/Admin/transport_allowance/transport_allowance_list/:pageNo/:perPage', TransportAllwoanceModel.transport_allowance_list_paigination)
 
 
-const OfficeVisitModel = require('../model/Admin/office_visit_model/office_visit_model')
+const OfficeVisitModel = require('../app/model/Admin/office_visit_model/office_visit_model')
 
 app.post('/Admin/office_visit/office_visit_create', OfficeVisitModel.office_visit_creates)
 app.get('/Admin/office_visit/office_visit_all/:id', OfficeVisitModel.office_visit_single)
@@ -224,7 +302,7 @@ app.post('/Admin/office_visit/office_visit_remarks_search/:id', OfficeVisitModel
 app.post('/Admin/office_visit/office_visit_person_search/:id', OfficeVisitModel.office_visit_person_search)
 
 
-const expenceCategoryModel = require(`../model/Admin/expense_category_model/expense_category_model`)
+const expenceCategoryModel = require(`../app/model/Admin/expense_category_model/expense_category_model`)
 app.post('/Admin/expence_category/expence_category_create', expenceCategoryModel.expence_category_create);
 app.get('/Admin/expence_category/expence_category_all', expenceCategoryModel.expence_category_list);
 app.get('/Admin/expence_category/expence_category_all/:id', expenceCategoryModel.expense_category_single);
@@ -233,7 +311,7 @@ app.post('/Admin/expence_category/expence_category_delete/:id', expenceCategoryM
 app.get('/Admin/expence_category/expence_category_list_paigination/:pageNo/:perPage', expenceCategoryModel.expense_category_list_paigination);
 
 
-const expenceModel = require(`../model/Admin/expense_model/expense_model`)
+const expenceModel = require(`../app/model/Admin/expense_model/expense_model`)
 app.post('/Admin/expense/expense_create', expenceModel.expence_create)
 app.post('/Admin/expense/expense_single_pdf', expenceModel.expense_single_pdf)
 app.post('/Admin/expense/expense_search', expenceModel.expense_search)
@@ -247,7 +325,7 @@ app.post('/Admin/expense/expense_pdf', expenceModel.expense_pdf)
 
 
 
-const income_category_model = require(`../model/Admin/income_category_model/income_category_model`)
+const income_category_model = require(`../app/model/Admin/income_category_model/income_category_model`)
 app.post('/Admin/income_category/income_category_create', income_category_model.income_category_create);
 app.get('/Admin/income_category/income_category_all', income_category_model.income_category_list);
 app.get('/Admin/income_category/income_category_all/:id', income_category_model.income_category_single);
@@ -256,7 +334,7 @@ app.post('/Admin/income_category/income_category_delete/:id', income_category_mo
 app.get('/Admin/income_category/income_category_list_paigination/:pageNo/:perPage', income_category_model.income_category_list_paigination);
 
 
-const incomeModel = require(`../model/Admin/income_model/income_model`);
+const incomeModel = require(`../app/model/Admin/income_model/income_model`);
 app.post('/Admin/income/income_create', incomeModel.income_create);
 app.get('/Admin/income/income_list', incomeModel.income_category_list);
 app.post('/Admin/income/income_search', incomeModel.income_search);
@@ -268,12 +346,12 @@ app.post('/Admin/income/income_update/:id', incomeModel.income_update);
 
 
 
-const supplierModel = require(`../model/Admin/supplier_model/supplier_model`)
+const supplierModel = require(`../app/model/Admin/supplier_model/supplier_model`)
 app.get('/Admin/supplier/supplier_list', supplierModel.supplier_address_list)
 app.get('/Admin/supplier/due_amount/:supplier_id', supplierModel.supplier_due_amount)
 
 
-const holidayCategoryModel = require(`../model/Admin/holiday_category_model/holiday_category_model`)
+const holidayCategoryModel = require(`../app/model/Admin/holiday_category_model/holiday_category_model`)
 app.post('/Admin/holiday_category/holiday_category_create', holidayCategoryModel.holiday_category_create)
 app.get('/Admin/holiday_category/holiday_category_all', holidayCategoryModel.holiday_category_list)
 app.get('/Admin/holiday_category/holiday_category_all/:id', holidayCategoryModel.holiday_category_single)
@@ -282,7 +360,7 @@ app.post('/Admin/holiday_category/holiday_category_delete/:id', holidayCategoryM
 app.get('/Admin/holiday_category/holiday_category_list/:pageNo/:perPage', holidayCategoryModel.holiday_category_list_paigination)
 
 
-const yearlyHolidayModel = require(`../model/Admin/yearly_holiday_modal/yearly_holiday_modal`)
+const yearlyHolidayModel = require(`../app/model/Admin/yearly_holiday_modal/yearly_holiday_modal`)
 app.post('/Admin/yearly_holiday/yearly_holiday_create', yearlyHolidayModel.yearly_holiday_create)
 app.get('/Admin/yearly_holiday/yearly_holiday_all', yearlyHolidayModel.yearly_holiday_list)
 app.get('/Admin/yearly_holiday/yearly_holiday_all_list', yearlyHolidayModel.yearly_holiday_list_all)
@@ -293,7 +371,7 @@ app.get('/Admin/yearly_holiday/yearly_holiday_list/:pageNo/:perPage', yearlyHoli
 app.post('/Admin/yearly_holiday/yearly_holiday_edit/:id', yearlyHolidayModel.yearly_holiday_update)
 
 
-const leaveApplicationModel = require(`../model/Admin/leave_application_model/leave_application_model`)
+const leaveApplicationModel = require(`../app/model/Admin/leave_application_model/leave_application_model`)
 app.post('/Admin/leave_application/leave_application_create', leaveApplicationModel.leave_application_create)
 app.get('/Admin/leave_application/leave_application_all', leaveApplicationModel.leave_application_list)
 app.get('/Admin/leave_application/leave_application_all/:id', leaveApplicationModel.leave_application_single)
@@ -306,7 +384,7 @@ app.get('/Admin/leave_category/leave_category_list', leaveApplicationModel.leave
 app.post('/Admin/leave_application/leave_application_edit_status/:id', leaveApplicationModel.leave_application_update_status)
 app.post('/Admin/leave_application/leave_application_pdf', leaveApplicationModel.leave_application_pdf)
 
-const SalaryModel = require(`../model/Admin/salary_model/salary_model`)
+const SalaryModel = require(`../app/model/Admin/salary_model/salary_model`)
 
 app.get('/Admin/salary/salary_all', SalaryModel.employe_joining_list_salary)
 app.post('/Admin/salary/salary_search', SalaryModel.employe_joining_list_salary_search)
@@ -321,7 +399,7 @@ app.get('/Admin/salary/salary_details/:id', SalaryModel.employe_list_salary_sing
 app.post('/Admin/salary/salary_edit/:id', SalaryModel.employee_salary_update)
 
 
-const AccountHeadTypeModel = require(`../model/Admin/account_head_type_model/account_head_type_model`)
+const AccountHeadTypeModel = require(`../app/model/Admin/account_head_type_model/account_head_type_model`)
 app.post('/Admin/account_head_type/account_head_type_create', AccountHeadTypeModel.account_head_type_create)
 app.get('/Admin/account_head_type/account_head_type_all', AccountHeadTypeModel.account_head_type_list)
 app.get('/Admin/account_head_type/account_head_type_all/:id', AccountHeadTypeModel.account_head_type_single)
@@ -330,7 +408,7 @@ app.post('/Admin/account_head_type/account_head_type_edit/:id', AccountHeadTypeM
 app.get('/Admin/account_head_type/account_head_type_all_paigination/:pageNo/:perPage', AccountHeadTypeModel.account_head_type_list_paigination)
 
 
-const AccountHeadModel = require(`../model/Admin/account_head/account_head_model`)
+const AccountHeadModel = require(`../app/model/Admin/account_head/account_head_model`)
 app.post('/Admin/account_head/account_head_create', AccountHeadModel.account_head_create)
 app.get('/Admin/account_head/account_head_all', AccountHeadModel.account_head_list)
 app.post('/Admin/account_head/account_head_delete/:id', AccountHeadModel.account_head_delete)
@@ -340,7 +418,7 @@ app.get('/Admin/account_head/account_head_list', AccountHeadModel.account_head_l
 app.get('/Admin/account_head/account_head_list_paigination/:pageNo/:perPage', AccountHeadModel.account_head_list_paigination)
 
 //  Jewel Vai
-const GenderModel = require("../model/Admin/gender_model/gender_model");
+const GenderModel = require("../app/model/Admin/gender_model/gender_model");
 app.post("/Admin/gender/gender_create", GenderModel.gender_create);
 app.get("/Admin/gender/gender_all", GenderModel.gender_list);
 app.get("/Admin/gender/gender_all/:id", GenderModel.gender_single);
@@ -353,7 +431,7 @@ app.get(
   GenderModel.gender_list_paigination
 );
 
-const LeaveCategoryModel = require("../model/Admin/leave_category_model/leave_category_model.js");
+const LeaveCategoryModel = require("../app/model/Admin/leave_category_model/leave_category_model.js");
 
 app.post(
   "/Admin/leave_category/leave_category_create",
@@ -380,7 +458,7 @@ app.post(
   LeaveCategoryModel.leave_category_delete
 );
 
-const BloodGroupModel = require("../model/Admin/blood_group_model/blood_group_model.js");
+const BloodGroupModel = require("../app/model/Admin/blood_group_model/blood_group_model.js");
 
 // app.get(
 //   "/Admin/blood_group/blood_group_all/:pageNo/:perPage",
@@ -409,7 +487,7 @@ app.get(
 );
 
 
-const CompanyTypeModel = require("../model/Admin/company_type_model/company_type_model.js");
+const CompanyTypeModel = require("../app/model/Admin/company_type_model/company_type_model.js");
 app.post(
   "/Admin/company_type/company_type_create",
   CompanyTypeModel.company_type_create
@@ -439,7 +517,7 @@ app.get(
 
 
 // Designation
-const DesignationModel = require("../model/Admin/designation_model/designation_model.js");
+const DesignationModel = require("../app/model/Admin/designation_model/designation_model.js");
 
 app.post(
   "/Admin/designation/designation_create",
@@ -469,7 +547,7 @@ app.get(
 );
 
 // Profession
-const ProfessionModel = require("../model/Admin/profession_model/profession_model.js");
+const ProfessionModel = require("../app/model/Admin/profession_model/profession_model.js");
 
 app.post(
   "/Admin/profession/profession_create",
@@ -496,7 +574,7 @@ app.get(
 );
 
 
-const EducationModel = require("../model/Admin/education_model/education_model.js");
+const EducationModel = require("../app/model/Admin/education_model/education_model.js");
 app.post("/Admin/education/education_create", EducationModel.education_create);
 app.get("/Admin/education/education_all", EducationModel.education_list);
 app.post(
@@ -515,7 +593,7 @@ app.get(
 );
 
 
-const ReligionModel = require("../model/Admin/religion_model/religion_model.js");
+const ReligionModel = require("../app/model/Admin/religion_model/religion_model.js");
 app.post("/Admin/religion/religion_create", ReligionModel.religion_create);
 app.get("/Admin/religion/religion_all", ReligionModel.religion_list);
 app.post("/Admin/religion/religion_edit/:id", ReligionModel.religion_update);
@@ -527,7 +605,7 @@ app.get("/Admin/religion/religion_list_paigination/:pageNo/:perPage", ReligionMo
 
 
 // PhotoGalleryCategoryModel
-const PhotoGalleryCategoryModel = require("../model/Admin/events_category_model/events_category.js");
+const PhotoGalleryCategoryModel = require("../app/model/Admin/events_category_model/events_category.js");
 
 app.post(
   "/Admin/events_category/events_category_create",
@@ -556,7 +634,7 @@ app.get(
   PhotoGalleryCategoryModel.photo_gallery_category_list_paigination
 );
 // NewsCategoryModel
-const NewsCategoryModel = require("../model/Admin/news_category_model/news_category.js");
+const NewsCategoryModel = require("../app/model/Admin/news_category_model/news_category.js");
 
 app.post(
   "/Admin/news_category/news_category_create",
@@ -586,7 +664,7 @@ app.get(
 );
 // NoticeCategoryModel
 
-const NoticeCategoryModel = require("../model/Admin/notice_category_model/notice_category.js");
+const NoticeCategoryModel = require("../app/model/Admin/notice_category_model/notice_category.js");
 
 app.post(
   "/Admin/notice_category/notice_category_create",
@@ -616,7 +694,7 @@ app.get(
 );
 // VideoGalleryCategoryModel
 
-const VideoGalleryCategoryModel = require("../model/Admin/video_category_model/video_category.js");
+const VideoGalleryCategoryModel = require("../app/model/Admin/video_category_model/video_category.js");
 
 app.post(
   "/Admin/video_gallery_category/video_gallery_category_create",
@@ -647,7 +725,7 @@ app.get(
 
 
 // newsmodel
-const NewsModel = require("../model/Admin/news_model/news_model.js");
+const NewsModel = require("../app/model/Admin/news_model/news_model.js");
 
 app.post("/Admin/news/news_create", NewsModel.news_create);
 app.get("/Admin/news/news_all", NewsModel.news_list);
@@ -664,7 +742,7 @@ app.get(
 );
 // NoticeModel
 
-const NoticeModel = require("../model/Admin/notice_model/notice_model.js");
+const NoticeModel = require("../app/model/Admin/notice_model/notice_model.js");
 
 app.post("/Admin/notice/notice_create", NoticeModel.notice_create);
 app.get("/Admin/notice/notice_all", NoticeModel.notice_list);
@@ -684,7 +762,7 @@ app.get(
 
 // VideoGalleryModel
 
-const VideoGalleryModel = require("../model/Admin/video_gallery_model/video_gallery.js");
+const VideoGalleryModel = require("../app/model/Admin/video_gallery_model/video_gallery.js");
 
 app.post(
   "/Admin/video_gallery/video_gallery_create",
@@ -714,7 +792,7 @@ app.get(
 
 
 
-const AttendanceModel = require('../model/Admin/attendance_model/attendance_model')
+const AttendanceModel = require('../app/model/Admin/attendance_model/attendance_model')
 app.post("/Admin/attendance/attendance_search", AttendanceModel.attendance_search
 );
 app.post("/Admin/attendance/attendance_create", AttendanceModel.attendance_create
@@ -774,7 +852,7 @@ app.get("/Admin/absent_sms/absent_create_manual_attendance", AttendanceModel.abs
 
 
 
-const smsApiModel = require('../model/Admin/sms_api_model/sms_api_model')
+const smsApiModel = require('../app/model/Admin/sms_api_model/sms_api_model')
 app.post("/Admin/sms_api/sms_api_create", smsApiModel.create_sms_api
 );
 app.get("/Admin/sms_api/sms_api_all", smsApiModel.sms_api_list
@@ -790,24 +868,1393 @@ app.get("/Admin/all_table", smsApiModel.all_table_list
 
 // npm uninstall react-html-table-to-excel
 
+app.get('/api/balance', async (req, res) => {
+  const { url } = req.query; // Extract apiKey and url from the query parameters
+  console.log(url)
+  if (!url) {
+    return res.status(400).json({ error: 'API  URL are required' });
+  }
 
-const smsSettings = require('../model/Admin/sms_settings_model/smsSettings')
+  try {
+    const response = await fetch(`${url}`);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching balance:', error);
+    res.status(500).json({ error: 'Failed to fetch balance' });
+  }
+});
+
+const connection = require('../connection/config/database')
+
+
+app.get('/absent/absent_online_entry_employee', (req, res) => {
+  let start = new Date();
+  let data_error = [];
+
+
+  if (req.method === 'GET') {
+
+    const attendance_date = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+
+    db.query("SELECT * FROM yearly_holiday WHERE start_date = ?", [attendance_date], (err, holiday) => {
+      if (err) {
+        data_error.push({ holiday_error: err });
+        return res.json(data_error);
+      }
+
+      if (holiday.length > 0) {
+        let msg = `Today ${attendance_date}, ${holiday[0].holiday_name} is a holiday. You can't take attendance today.`;
+        data_error.push({ holiday_msg: msg });
+        return res.json(data_error);
+      }
+      else {
+        // Leave approved users
+        let lv_query = `
+            SELECT GROUP_CONCAT(whose_leave) AS user_id
+            FROM leave_application
+            LEFT JOIN leave_application_date ON leave_application.id = leave_application_date.leave_application_id
+            WHERE leave_application.application_status = 2
+              AND leave_application_date.leave_date = ?
+          `;
+
+        db.query(lv_query, [attendance_date], (err, lv_users) => {
+          if (err) {
+            data_error.push({ lv_error: err });
+            return res.json(data_error);
+          }
+          console.log(lv_users, 'lv_users')
+
+          let lv_users_id = lv_users[0].user_id || '';
+
+          // Attendance users
+          db.query("SELECT GROUP_CONCAT(DISTINCT user_id) AS att_user_id FROM attendance WHERE attendance_date = ?", [attendance_date], (err, att_users) => {
+            if (err) {
+              data_error.push({ att_error: err });
+              return res.json(data_error);
+            }
+            console.log(att_users)
+            let att_users_id = att_users[0].att_user_id || '';
+            let not_in_users = [lv_users_id, att_users_id].filter(Boolean).join(',');
+
+            let whereClause = not_in_users ?
+              `users.status = 1 AND users.role_name IN (1) AND users.id NOT IN (${not_in_users})` :
+              `users.status = 1 AND users.role_name IN (1)`;
+
+            // Absent users id
+            db.query(`SELECT GROUP_CONCAT(id) AS user_id FROM users WHERE ${whereClause}`, (err, absent_users) => {
+              if (err) {
+                data_error.push({ absent_error: err });
+                return res.json(data_error);
+              }
+              console.log(absent_users, 'absent_users')
+              let absent_users_id = absent_users[0].user_id || '';
+              let absent_id_arr = absent_users_id.split(',').map(id => id.trim());
+              let absent_count = absent_id_arr.length;
+              console.log(absent_users_id, 'absent_users_id')
+
+
+
+              if (absent_count > 0) {
+
+                // let current_time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+
+                let data4 = [];
+                console.log(data4, 'data4 919')
+                let processAbsentUsers = absent_id_arr.map((user_id, index) => {
+                  return new Promise((resolve, reject) => {
+                    db.query("SELECT user_id FROM absent WHERE absent_date = ? AND user_id = ?", [attendance_date, user_id], (err, absent_exists) => {
+                      if (err) {
+                        data_error.push({ absent_exists_error: err });
+                        console.log(absent_exists, 'absent_exists')
+                        reject(err);
+                      } else if (absent_exists.length === 0) {
+                        db.query("SELECT school_shift_id FROM employee_promotion WHERE user_id = ?", [user_id], (err, user_shift) => {
+                          if (err) {
+                            data_error.push({ user_shift_error: err });
+                            reject(err);
+                          } else {
+
+
+                            console.log(user_shift, 'user_shift')
+                            console.log(user_id, 'user_shift')
+                            let users_shift = user_shift[0]?.school_shift_id?.split(',');
+                            let user_shift_ids = users_shift?.map(shift_id => parseInt(shift_id));
+                            console.log(users_shift)
+                            let promises = user_shift_ids?.map(shift_id => {
+                              return new Promise((resolveShift, rejectShift) => {
+                                db.query("SELECT MAX(late_time) AS max_late_time, MAX(end_time) AS max_end_time FROM school_shift WHERE id = ?", [shift_id], (err, shift_times) => {
+                                  if (err) {
+                                    data_error.push({ shift_time_error: err });
+                                    rejectShift(err);
+                                  } else {
+                                    console.log(shift_times, 'shift_times', '945')
+                                    let max_late_time = shift_times[0].max_late_time;
+                                    let max_end_time = shift_times[0].max_end_time;
+                                    console.log(data4, '950')
+                                    console.log(max_late_time, 'shift_times', '945')
+                                    console.log(max_end_time, 'shift_times', '945')
+                                    if (max_late_time && max_end_time) {
+                                      data4.push({
+                                        user_id: user_id,
+                                        created_by: null,
+                                        absent_date: attendance_date,
+                                        device_id: "Online",
+                                        shift_id: shift_id
+                                      });
+                                      console.log(data4, 'data4, 961')
+                                    }
+                                    resolveShift();
+                                  }
+                                });
+                              });
+                            });
+
+                            Promise.all(promises).then(() => resolve()).catch(err => reject(err));
+                          }
+                        });
+                      } else {
+                        data_error.push({ absent_exists: `Absent exists for user id ${user_id}` });
+                        resolve();
+                      }
+                    });
+                  });
+                });
+
+                Promise.all(processAbsentUsers)
+
+                  .then(() => {
+                    if (data4.length > 0) {
+                      console.log(data4, 'data4 978');
+
+                      // Insert data into the absent table
+                      db.query(
+                        "INSERT INTO absent (user_id, created_by, absent_date, device_id, shift_id) VALUES ?",
+                        [data4.map(item => Object.values(item))],
+                        (err) => {
+                          if (err) {
+                            data_error.push({ insert_absent_error: err });
+                          } else {
+                            // Get all the inserted user_ids from data4
+                            const insertedUserIds = data4.map(item => item.user_id);
+
+                            // Retrieve the inserted records from the absent table
+                            db.query(
+                              "SELECT * FROM absent WHERE user_id IN (?) AND absent_date = ?",
+                              [insertedUserIds, attendance_date],
+                              (err, inserted_absent_data) => {
+                                if (err) {
+                                  data_error.push({ absent_data_retrieve_error: err });
+                                } else {
+                                  console.log(inserted_absent_data, 'inserted_absent_data 1029');
+
+                                  // Send SMS to absent users
+                                  let absent_users_query = `
+                  SELECT GROUP_CONCAT(DISTINCT user_id) AS ab_user_id 
+                  FROM absent 
+                  WHERE absent_date = ? AND user_id IN (${absent_users_id})`;
+
+                                  db.query(absent_users_query, [attendance_date], (err, absent_data) => {
+                                    if (err) {
+                                      data_error.push({ absent_data_error: err });
+                                    } else {
+                                      let users_id_arr = absent_data[0].ab_user_id.split(',');
+                                      // Call the SMS sending function
+                                      teacherEmployeeAbsentSmsSubmitAuto(users_id_arr, attendance_date, inserted_absent_data);
+                                    }
+                                  });
+                                }
+                                res.json({ inserted_absent_data, message: data_error });
+                              }
+                            );
+                          }
+                        }
+                      );
+                    } else {
+                      data_error.push({ absent_msg: "Absent data array is empty" });
+                      res.json(data_error);
+                    }
+                  });
+
+              } else {
+                data_error.push({ absent_count_msg: "Absent count is 0" });
+                res.json(data_error);
+              }
+            });
+          });
+        });
+      }
+    });
+
+  } else {
+    data_error.push({ request_msg: "Not a GET request" });
+    res.json(data_error);
+  }
+
+  let end = new Date();
+  let diff_seconds = Math.abs((end - start) / 1000) + " seconds";
+  data_error.push({ api_exec_time: diff_seconds });
+});
+
+async function sendSms(mobile, msg) {
+  const quick_api = '7ae89887eac6055a2b9adc494ca3b902';
+  const apiUrl = 'https://quicksmsapp.com/Api/sms/campaign_api';
+  try {
+    const response = await axios.get(apiUrl, {
+      params: {
+        quick_api,
+        mobile,
+        msg,
+      },
+    });
+    console.log('SMS sent:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error sending SMS:', error);
+    throw error;
+  }
+}
+
+async function teacherEmployeeAbsentSmsSubmitAuto(usersIdArr, absentDate, inserted_absent_data) {
+
+  const smsMessages = [];
+
+  for (let userId of usersIdArr) {
+    try {
+      // Fetch user details and attendance
+      const userResult = await new Promise((resolve, reject) => {
+        const query = `
+          SELECT users.id, users.unique_id, users.full_name, users.mobile, users.created_date, 
+                 DATE(attendance.checktime) AS date, TIME(MAX(attendance.checktime)) AS max_time, 
+                 TIME(MIN(attendance.checktime)) AS min_time, designation.designation_name 
+          FROM users 
+          LEFT JOIN attendance ON attendance.user_id = users.id 
+          LEFT JOIN employee_promotion ON employee_promotion.user_id = users.id 
+          LEFT JOIN designation ON designation.id = employee_promotion.designation_id 
+          WHERE users.id = ? 
+          GROUP BY users.id, attendance.user_id`;
+        connection.query(query, [userId], (error, result) => {
+          if (error) {
+            console.error(`Error fetching user data for userId ${userId}:`, error);
+            return reject(error);
+          }
+          resolve(result);
+        });
+      });
+
+      if (userResult.length === 0 || !userResult[0].mobile) {
+        console.log(`Mobile not found for user ${userId}`);
+        continue;
+      }
+
+      const content = userResult[0];
+
+      // Fetch SMS settings
+      const smsSettingsRow = await new Promise((resolve, reject) => {
+        const query = 'SELECT * FROM sms_settings WHERE id = 1';
+        db.query(query, (error, result) => {
+          if (error) {
+            console.error(`Error fetching SMS settings for userId ${userId}:`, error);
+            return reject(error);
+          }
+          resolve(result[0]);
+        });
+      });
+
+      if (smsSettingsRow.sms_system !== 1 || smsSettingsRow.auto_te_absence !== 1) {
+        console.log(`SMS system or auto absence not enabled for user ${userId}`);
+        continue;
+      }
+
+      // Check if absence SMS already exists
+      const absentData = await new Promise((resolve, reject) => {
+        const query = 'SELECT id FROM absent_sms WHERE user_id = ? AND absent_date = ?';
+        db.query(query, [userId, absentDate], (error, result) => {
+          if (error) {
+            console.error(`Error checking absent data for userId ${userId}:`, error);
+            return reject(error);
+          }
+          resolve(result);
+        });
+      });
+
+      if (absentData.length === 0) {
+
+
+        // Prepare the SMS message
+        const predefinedVar = [
+          '[[company_name]]',
+          '[[full_name]]',
+          '[[date]]',
+          '[[sms_time]]',
+          '[[teacher/employee_id]]',
+          '[[teacher/employee_designation]]',
+        ];
+
+        const replacedVar = [
+          'No Company',
+          content.full_name,
+          absentDate,
+          absentDate,
+          content.unique_id,
+          content.designation_name,
+          new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })
+        ];
+
+        let teAbsenceSms = smsSettingsRow?.te_absence;
+        predefinedVar.forEach((varItem, index) => {
+          teAbsenceSms = teAbsenceSms?.replace(varItem, replacedVar[index]);
+        });
+
+
+
+
+        smsMessages.push({ user_id: userId, message: teAbsenceSms, mobile: content.mobile });
+
+        // Send SMS directly
+        if (smsSettingsRow.te_absent_shift !== '' && smsSettingsRow.te_absent_shift_enable == 1)
+          try {
+            await sendSms(content.mobile, teAbsenceSms);
+          } catch (error) {
+            console.error(`Error sending SMS for userId ${userId}:`, error);
+          }
+      }
+    } catch (error) {
+      console.error(`Error processing userId ${userId}:`, error);
+    }
+  }
+
+  // Insert SMS campaign
+  employeeAbsentSmsDataInsert(usersIdArr, smsMessages, absentDate, inserted_absent_data);
+}
+
+async function employeeAbsentSmsDataInsert(usersIdArr, smsMessages, absentDate, inserted_absent_data) {
+  const totalNumber = usersIdArr.length;
+  const smsCampaignData = {
+    name: 'teacher_employee_absent',
+    category: 'Enter Number',
+    created_by: 6,
+    one_time: 1,
+    total_number: totalNumber,
+    status: 2
+  };
+
+  try {
+    const insertCampaign = await new Promise((resolve, reject) => {
+      db.query('INSERT INTO sms_campaign SET ?', smsCampaignData, (error, result) => {
+        if (error) {
+          console.error(`Error inserting SMS campaign:`, error);
+          return reject(error);
+        }
+        resolve(result);
+      });
+    });
+    const campaignId = insertCampaign.insertId;
+
+    // Insert SMS campaign logs
+    const smsCampaignLogData = smsMessages.map(smsData => ({
+      campaign_id: campaignId,
+      category: 'Enter Number',
+      sender_id: 6,
+      status: 2,
+      user_id: smsData.user_id,
+      campaign_category: 19,
+      message: smsData.message,
+      number: smsData.mobile,
+      response: 'Delivered'
+    }));
+
+    await new Promise((resolve, reject) => {
+      db.query('INSERT INTO sms_campaign_log (campaign_id, category, sender_id, status, user_id, campaign_category, message, number, response) VALUES ?', [smsCampaignLogData.map(Object.values)], (error, result) => {
+        if (error) {
+          console.error(`Error inserting SMS campaign logs:`, error);
+          return reject(error);
+        }
+        resolve(result);
+      });
+    });
+
+    // Get inserted campaign log IDs
+    const logIds = await new Promise((resolve, reject) => {
+      const query = `SELECT GROUP_CONCAT(id) as sms_log_id FROM sms_campaign_log WHERE campaign_id = ?`;
+      db.query(query, [campaignId], (error, result) => {
+        if (error) {
+          console.error(`Error fetching SMS log IDs for campaignId ${campaignId}:`, error);
+          return reject(error);
+        }
+        resolve(result[0].sms_log_id.split(','));
+      });
+    });
+
+    const absentIdLookup = inserted_absent_data.reduce((lookup, record) => {
+      lookup[record.user_id] = record.id;
+      return lookup;
+    }, {});
+    // Insert absent SMS
+    const absentSmsData = usersIdArr.map((userId, index) => ({
+      user_id: userId,
+      absent_date: absentDate,
+      sms_campaign_log_id: logIds[index],
+      absent_id: absentIdLookup[userId]
+
+    }));
+
+
+
+    await new Promise((resolve, reject) => {
+      db.query('INSERT INTO absent_sms (user_id, absent_date, sms_campaign_log_id, absent_id) VALUES ?', [absentSmsData.map(Object.values)], (error, result) => {
+        if (error) {
+          console.error(`Error inserting absent SMS data:`, error);
+          return reject(error);
+        }
+        resolve(result);
+      });
+    });
+
+  } catch (error) {
+    console.error('Error during SMS campaign creation or logging:', error);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const quick_api = '7ae89887eac6055a2b9adc494ca3b902'
+// const smsEncode = encodeURIComponent(teAbsenceSms);
+// const smsApiParam = `?quick_api=${quick_api}&mobile=${content.mobile}&msg=${smsEncode}`;
+// const apiUrl = `https://quicksmsapp.com/Api/sms/campaign_api${smsApiParam}`;
+// apiData.push(apiUrl);
+
+// const axios = require('axios'); // Make sure to import axios if not already imported
+
+// async function sendSms(mobile, msg) {
+//   const quick_api = '7ae89887eac6055a2b9adc494ca3b902';
+//   const apiUrl = 'https://quicksmsapp.com/Api/sms/campaign_api';
+//   try {
+//     const response = await axios.get(apiUrl, {
+//       params: {
+//         quick_api,
+//         mobile,
+//         msg,
+//       },
+//     });
+//     console.log('SMS sent:', response.data);
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error sending SMS:', error);
+//     throw error;
+//   }
+// }
+// async function teacherEmployeeAbsentSmsSubmitAuto(usersIdArr, absentDate) {
+
+//   const smsApi = sendSms();
+//   const apiData = [];
+//   const smsMessages = [];
+
+//   console.log(smsMessages)
+//   console.log(apiData)
+//   for (let userId of usersIdArr) {
+//     try {
+//       // Fetch user details and attendance
+//       const userResult = await new Promise((resolve, reject) => {
+//         const query = `
+//           SELECT users.id, users.unique_id, users.full_name, users.mobile, users.created_date, 
+//                  DATE(attendance.checktime) AS date, TIME(MAX(attendance.checktime)) AS max_time, 
+//                  TIME(MIN(attendance.checktime)) AS min_time, designation.designation_name 
+//           FROM users 
+//           LEFT JOIN attendance ON attendance.user_id = users.id 
+//           LEFT JOIN employee_promotion ON employee_promotion.user_id = users.id 
+//           LEFT JOIN designation ON designation.id = employee_promotion.designation_id 
+//           WHERE users.id = ? 
+//           GROUP BY users.id, attendance.user_id`;
+//         connection.query(query, [userId], (error, result) => {
+//           if (error) {
+//             console.error(`Error fetching user data for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result);
+//         });
+//       });
+
+//       if (userResult.length === 0 || !userResult[0].mobile) {
+//         console.log(`Mobile not found for user ${userId}`);
+//         continue;
+//       }
+
+//       const content = userResult[0];
+
+//       // Fetch SMS settings
+//       const smsSettingsRow = await new Promise((resolve, reject) => {
+//         const query = 'SELECT * FROM sms_settings WHERE id = 1';
+//         db.query(query, (error, result) => {
+//           if (error) {
+//             console.error(`Error fetching SMS settings for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result[0]);
+//         });
+//       });
+
+//       if (smsSettingsRow.sms_system !== 1 || smsSettingsRow.auto_te_absence !== 1) {
+//         console.log(`SMS system or auto absence not enabled for user ${userId}`);
+//         continue;
+//       }
+
+//       // Check if absence SMS already exists
+//       const absentData = await new Promise((resolve, reject) => {
+//         const query = 'SELECT id FROM absent_sms WHERE user_id = ? AND absent_date = ?';
+//         db.query(query, [userId, absentDate], (error, result) => {
+//           if (error) {
+//             console.error(`Error checking absent data for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result);
+//         });
+//       });
+
+//       if (absentData.length === 0) {
+//         // Fetch user shift
+//         const usersShiftRow = await new Promise((resolve, reject) => {
+//           const query = 'SELECT school_shift_id FROM employee_promotion WHERE user_id = ?';
+//           db.query(query, [userId], (error, result) => {
+//             if (error) {
+//               console.error(`Error fetching shift data for userId ${userId}:`, error);
+//               return reject(error);
+//             }
+//             resolve(result);
+//           });
+//         });
+
+//         const usersShiftArr = usersShiftRow[0].school_shift_id.split(',');
+//         console.log(usersShiftArr, 'usersShiftArr 1135')
+//         // Prepare the SMS message
+//         const predefinedVar = [
+//           '[[company_name]]',
+//           '[[full_name]]',
+//           '[[teacher/employee_id]]',
+//           '[[teacher/employee_designation]]',
+//           '[[absent_date]]',
+//           '[[sms_time]]'
+//         ];
+
+//         const replacedVar = [
+//           'companyInfo().name',
+//           content.full_name,
+//           content.unique_id,
+//           content.designation_name,
+//           absentDate,
+//           new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })
+//         ];
+//         console.log(replacedVar)
+//         let teAbsenceSms = smsSettingsRow?.te_absence;
+//         predefinedVar.forEach((varItem, index) => {
+//           teAbsenceSms = teAbsenceSms?.replace(varItem, replacedVar[index]);
+//         });
+
+//         const smsEncode = encodeURIComponent(teAbsenceSms);
+//         const smsApiParam = smsApi.sms_api_param?.replace(smsApi.sms_num, content.mobile).replace(smsApi.sms_msg, smsEncode);
+//         const apiUrl = `${smsApi.main_url}${smsApiParam}`;
+
+//         apiData?.push(apiUrl);
+//         smsMessages?.push({ user_id: userId, message: teAbsenceSms, mobile: content.mobile });
+//       }
+//     } catch (error) {
+//       console.error(`Error processing userId ${userId}:`, error);
+//     }
+//   }
+
+//   // Send SMS via axios
+//   for (let url of apiData) {
+//     try {
+//       await axios.get(url);
+//     } catch (error) {
+//       console.error(`Error sending SMS:`, error);
+//     }
+//   }
+
+//   // Insert SMS campaign
+//   const totalNumber = usersIdArr.length;
+//   const smsCampaignData = {
+//     name: 'teacher_employee_absent',
+//     category: 'Enter Number',
+//     created_by: 6,
+//     one_time: 1,
+//     total_number: totalNumber,
+//     status: 2
+//   };
+
+//   try {
+//     const insertCampaign = await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO sms_campaign SET ?', smsCampaignData, (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting SMS campaign:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+//     const campaignId = insertCampaign.insertId;
+
+//     // Insert SMS campaign logs
+//     const smsCampaignLogData = smsMessages.map(smsData => ({
+//       campaign_id: campaignId,
+//       category: 'Enter Number',
+//       sender_id: 6,
+//       status: 2,
+//       user_id: smsData.user_id,
+//       campaign_category: 19,
+//       message: smsData.message,
+//       number: smsData.mobile,
+//       response: 'Delivered'
+//     }));
+
+//     console.log(smsCampaignLogData, 'smsCampaignLogData 1217')
+
+//     await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO sms_campaign_log (campaign_id, category, sender_id, status, user_id, campaign_category, message, number, response) VALUES ?', [smsCampaignLogData.map(Object.values)], (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting SMS campaign logs:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+
+//     // Get inserted campaign log IDs
+//     const logIds = await new Promise((resolve, reject) => {
+//       const query = `SELECT GROUP_CONCAT(id) as sms_log_id FROM sms_campaign_log WHERE campaign_id = ?`;
+//       db.query(query, [campaignId], (error, result) => {
+//         if (error) {
+//           console.error(`Error fetching SMS log IDs for campaignId ${campaignId}:`, error);
+//           return reject(error);
+//         }
+//         resolve(result[0].sms_log_id.split(','));
+//       });
+//     });
+
+//     // Insert absent SMS
+//     const absentSmsData = usersIdArr.map((userId, index) => ({
+//       user_id: userId,
+//       absent_date: absentDate,
+//       sms_campaign_log_id: logIds[index]
+//     }));
+
+//     await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO absent_sms (user_id, absent_date, sms_campaign_log_id) VALUES ?', [absentSmsData.map(Object.values)], (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting absent SMS data:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+
+//   } catch (error) {
+//     console.error('Error during SMS campaign creation or logging:', error);
+//   }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// async function teacherEmployeeAbsentSmsSubmitAuto(usersIdArr, absentDate) {
+//   const smsApi = sendSms();
+//   const apiData = [];
+//   const smsMessages = [];
+
+//   for (let userId of usersIdArr) {
+//     try {
+//       // Fetch user details and attendance
+//       const userResult = await new Promise((resolve, reject) => {
+//         const query = `
+//           SELECT users.id, users.unique_id, users.full_name, users.mobile, users.created_date, 
+//                  DATE(attendance.checktime) AS date, TIME(MAX(attendance.checktime)) AS max_time, 
+//                  TIME(MIN(attendance.checktime)) AS min_time, designation.designation_name 
+//           FROM users 
+//           LEFT JOIN attendance ON attendance.user_id = users.id 
+//           LEFT JOIN employee_promotion ON employee_promotion.user_id = users.id 
+//           LEFT JOIN designation ON designation.id = employee_promotion.designation_id 
+//           WHERE users.id = ? 
+//           GROUP BY users.id, attendance.user_id`;
+//         connection.query(query, [userId], (error, result) => {
+//           if (error) {
+//             console.error(`Error fetching user data for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result);
+//         });
+//       });
+
+//       if (userResult.length === 0 || !userResult[0].mobile) {
+//         console.log(`Mobile not found for user ${userId}`);
+//         continue;
+//       }
+
+//       const content = userResult[0];
+
+//       // Fetch SMS settings
+//       const smsSettingsRow = await new Promise((resolve, reject) => {
+//         const query = 'SELECT * FROM sms_settings WHERE id = 1';
+//         db.query(query, (error, result) => {
+//           if (error) {
+//             console.error(`Error fetching SMS settings for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result[0]);
+//         });
+//       });
+
+//       if (smsSettingsRow.sms_system !== 1 || smsSettingsRow.auto_te_absence !== 1) {
+//         console.log(`SMS system or auto absence not enabled for user ${userId}`);
+//         continue;
+//       }
+
+//       // Check if absence SMS already exists
+//       const absentData = await new Promise((resolve, reject) => {
+//         const query = 'SELECT id FROM absent_sms WHERE user_id = ? AND absent_date = ?';
+//         db.query(query, [userId, absentDate], (error, result) => {
+//           if (error) {
+//             console.error(`Error checking absent data for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result);
+//         });
+//       });
+
+//       if (absentData.length === 0) {
+//         // Fetch user shift
+//         const usersShiftRow = await new Promise((resolve, reject) => {
+//           const query = 'SELECT school_shift_id FROM employee_promotion WHERE user_id = ?';
+//           db.query(query, [userId], (error, result) => {
+//             if (error) {
+//               console.error(`Error fetching shift data for userId ${userId}:`, error);
+//               return reject(error);
+//             }
+//             resolve(result);
+//           });
+//         });
+
+//         const usersShiftArr = usersShiftRow[0].school_shift_id.split(',');
+
+//         // Prepare the SMS message
+//         const predefinedVar = [
+//           '[[company_name]]',
+//           '[[full_name]]',
+//           '[[teacher/employee_id]]',
+//           '[[teacher/employee_designation]]',
+//           '[[absent_date]]',
+//           '[[sms_time]]'
+//         ];
+
+//         const replacedVar = [
+//           'companyInfo().name',
+//           content.full_name,
+//           content.unique_id,
+//           content.designation_name,
+//           absentDate,
+//           new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })
+//         ];
+
+//         let teAbsenceSms = smsSettingsRow.te_absence;
+//         predefinedVar.forEach((varItem, index) => {
+//           teAbsenceSms = teAbsenceSms?.replace(varItem, replacedVar[index]);
+//         });
+
+//         const smsEncode = encodeURIComponent(teAbsenceSms);
+//         const smsApiParam = smsApi.sms_api_param?.replace(smsApi.sms_num, content.mobile).replace(smsApi.sms_msg, smsEncode);
+//         const apiUrl = `${smsApi.main_url}${smsApiParam}`;
+
+//         apiData.push(apiUrl);
+//         smsMessages.push({ user_id: userId, message: teAbsenceSms, mobile: content.mobile });
+//       }
+//     } catch (error) {
+//       console.error(`Error processing userId ${userId}:`, error);
+//     }
+//   }
+
+//   // Send SMS via axios
+//   for (let url of apiData) {
+//     try {
+//       await axios.get(url);
+//     } catch (error) {
+//       console.error(`Error sending SMS:`, error);
+//     }
+//   }
+
+//   // Insert SMS campaign
+//   const totalNumber = usersIdArr.length;
+//   const smsCampaignData = {
+//     name: 'teacher_employee_absent',
+//     category: 'Enter Number',
+//     created_by: 6,
+//     one_time: 1,
+//     total_number: totalNumber,
+//     status: 2
+//   };
+
+//   try {
+//     const insertCampaign = await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO sms_campaign SET ?', smsCampaignData, (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting SMS campaign:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+//     const campaignId = insertCampaign.insertId;
+
+//     // Insert SMS campaign logs
+//     const smsCampaignLogData = smsMessages.map(smsData => ({
+//       campaign_id: campaignId,
+//       category: 'Enter Number',
+//       sender_id: 6,
+//       status: 2,
+//       user_id: smsData.user_id,
+//       campaign_category: 19,
+//       message: smsData.message,
+//       number: smsData.mobile,
+//       response: 'Delivered'
+//     }));
+
+//     await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO sms_campaign_log (campaign_id, category, sender_id, status, user_id, campaign_category, message, number, response) VALUES ?', [smsCampaignLogData.map(Object.values)], (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting SMS campaign logs:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+
+//     // Get inserted campaign log IDs
+//     const logIds = await new Promise((resolve, reject) => {
+//       const query = `SELECT GROUP_CONCAT(id) as sms_log_id FROM sms_campaign_log WHERE campaign_id = ?`;
+//       db.query(query, [campaignId], (error, result) => {
+//         if (error) {
+//           console.error(`Error fetching SMS log IDs for campaignId ${campaignId}:`, error);
+//           return reject(error);
+//         }
+//         resolve(result[0].sms_log_id.split(','));
+//       });
+//     });
+
+//     // Insert absent SMS
+//     const absentSmsData = usersIdArr.map((userId, index) => ({
+//       user_id: userId,
+//       absent_date: absentDate,
+//       sms_campaign_log_id: logIds[index]
+//     }));
+
+//     await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO absent_sms (user_id, absent_date, sms_campaign_log_id) VALUES ?', [absentSmsData.map(Object.values)], (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting absent SMS data:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+
+//   } catch (error) {
+//     console.error('Error during SMS campaign creation or logging:', error);
+//   }
+// }
+
+// async function teacherEmployeeAbsentSmsSubmitAuto(usersIdArr, absentDate) {
+//   const smsApi = sendSms();
+//   const apiData = [];
+//   const smsMessages = [];
+
+//   for (let userId of usersIdArr) {
+
+//     console.log(userId, 'userId 1066')
+//     // const content = await teacherAbsent(archive);
+
+
+//     const result = await new Promise((resolve, reject) => {
+//       const query = ' SELECT users.id, users.unique_id, users.full_name, users.mobile, users.created_date, DATE(attendance.checktime) AS date, TIME(MAX(attendance.checktime)) AS max_time, TIME(MIN(attendance.checktime)) AS min_time, designation.designation_name FROM users LEFT JOIN attendance ON attendance.user_id = users.id LEFT JOIN employee_promotion ON employee_promotion.user_id = users.id LEFT JOIN designation ON designation.id = employee_promotion.designation_id WHERE users.id = ? GROUP BY users.id, attendance.user_id';
+//       connection.query(query, [userId], (error, result) => {
+//         if (error) return reject(error);
+//         resolve(result);
+//       });
+//     });
+
+//     console.log(result[0], 'userId 1069');
+//     const content = result[0]
+//     console.log(content, 'userId 1069 content')
+//     console.log(content.mobile, 'userId 1081 content')
+//     if (content && content.mobile) {
+//       // Fetch SMS settings
+//       const smsSettingsRow = await db.query(`SELECT * FROM sms_settings WHERE id='1'`);
+//       if (smsSettingsRow.sms_system === 1) {
+//         if (smsSettingsRow.auto_te_absence === 1) {
+//           const absentData = await db.query(`SELECT id FROM absent_sms WHERE user_id='${userId}' AND absent_date='${absentDate}'`);
+//           console.log(absentData, 'absentData 1079')
+//           if (absentData.length === 0) {
+//             const usersShiftRow = await db.query(`SELECT school_shift_id FROM employee_promotion WHERE user_id=${userId}`);
+//             const usersShiftArr = usersShiftRow[0].school_shift_id.split(',');
+//             console.log(usersShiftArr)
+//             if (smsSettingsRow.te_one_time === 1) {
+//               const predefinedVar = [
+//                 '[[company_name]]',
+//                 '[[full_name]]',
+//                 '[[teacher/employee_id]]',
+//                 '[[teacher/employee_designation]]',
+//                 '[[absent_date]]',
+//                 '[[sms_time]]'
+//               ];
+//               const replacedVar = [
+//                 'companyInfo().name',
+//                 content.full_name,
+//                 content.unique_id,
+//                 content.designation_name,
+//                 absentDate,
+//                 new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })
+//               ];
+//               let teAbsenceSms = smsSettingsRow.te_absence;
+//               predefinedVar.forEach((varItem, index) => {
+//                 teAbsenceSms = teAbsenceSms.replace(varItem, replacedVar[index]);
+//               });
+
+//               const smsEncode = encodeURIComponent(teAbsenceSms);
+//               const smsApiParam = smsApi.sms_api_param.replace(smsApi.sms_num, content.mobile).replace(smsApi.sms_msg, smsEncode);
+//               const apiUrl = `${smsApi.main_url}${smsApiParam}`;
+//               apiData.push(apiUrl);
+//               smsMessages.push({ user_id: userId, message: teAbsenceSms, mobile: content.mobile });
+//             } else {
+//               const smsSettingsShiftArr = smsSettingsRow.te_absent_shift.split(',');
+//               const commonShifts = usersShiftArr.filter(shift => smsSettingsShiftArr.includes(shift));
+
+//               for (let shift of commonShifts) {
+//                 const predefinedVar = [
+//                   '[[company_name]]',
+//                   '[[full_name]]',
+//                   '[[teacher/employee_id]]',
+//                   '[[teacher/employee_designation]]',
+//                   '[[absent_date]]',
+//                   '[[sms_time]]'
+//                 ];
+//                 const replacedVar = [
+//                   companyInfo().name,
+//                   content.full_name,
+//                   content.unique_id,
+//                   content.designation_name,
+//                   absentDate,
+//                   new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })
+//                 ];
+//                 let teAbsenceSms = smsSettingsRow.te_absence;
+//                 predefinedVar.forEach((varItem, index) => {
+//                   teAbsenceSms = teAbsenceSms.replace(varItem, replacedVar[index]);
+//                 });
+
+//                 const smsEncode = encodeURIComponent(teAbsenceSms);
+//                 const smsApiParam = smsApi.sms_api_param.replace(smsApi.sms_num, content.mobile).replace(smsApi.sms_msg, smsEncode);
+//                 const apiUrl = `${smsApi.main_url}${smsApiParam}`;
+//                 apiData.push(apiUrl);
+//                 smsMessages.push({ user_id: userId, message: teAbsenceSms, mobile: content.mobile });
+//               }
+//             }
+//             msg = "<span class='text-success mt-3'>Delivered</span>";
+//           }
+//         } else {
+//           msg = "<span class='text-danger mt-3'>Teacher/Employee Absent setting not enabled</span>";
+//         }
+//       } else {
+//         msg = "<span class='text-danger mt-3'>SMS system not enabled</span>";
+//       }
+//     } else {
+//       msg = "<span class='text-danger mt-3'>Mobile not found</span>";
+//     }
+//   }
+
+//   // Send SMS via axios
+//   for (let url of apiData) {
+//     await axios.get(url);
+//   }
+
+//   // Insert SMS campaign
+//   const totalNumber = usersIdArr.length;
+//   const smsCampaignData = {
+//     name: 'teacher_employee_absent',
+//     category: 'Enter Number',
+//     created_by: 6,
+//     one_time: 1,
+//     total_number: totalNumber,
+//     status: 2
+//   };
+//   console.log(smsCampaignData, 'smsCampaignData 1191')
+//   const insertCampaign = await db.query('INSERT INTO sms_campaign SET ?', smsCampaignData);
+//   const campaignId = insertCampaign.insertId;
+
+//   // Insert SMS campaign logs
+//   console.log(smsMessages, 'smsMessages 1196')
+//   const smsCampaignLogData = smsMessages.map(smsData => ({
+//     campaign_id: campaignId,
+//     category: 'Enter Number',
+//     sender_id: 6,
+//     status: 2,
+//     user_id: smsData.user_id,
+//     campaign_category: 19,
+//     message: smsData.message,
+//     number: smsData.mobile,
+//     response: 'Delivered'
+//   }));
+//   await db.query('INSERT INTO sms_campaign_log (campaign_id, category, sender_id, status, user_id, campaign_category, message, number, response) VALUES ?', [smsCampaignLogData.map(Object.values)]);
+
+//   // Get inserted campaign log IDs
+//   const logIds = await db.query(`SELECT GROUP_CONCAT(id) as sms_log_id FROM sms_campaign_log WHERE campaign_id = '${campaignId}'`);
+//   const logIdArr = logIds
+//   // const logIdArr = logIds[0].sms_log_id.split(',');
+
+//   // Insert absent SMS
+//   const absentSmsData = usersIdArr.map((userId, index) => ({
+//     user_id: userId,
+//     absent_date: absentDate,
+//     sms_campaign_log_id: logIdArr[index]
+//   }));
+//   await db.query('INSERT INTO absent_sms (user_id, absent_date, sms_campaign_log_id) VALUES ?', [absentSmsData.map(Object.values)]);
+// }
+
+
+
+
+
+
+
+// Function to retrieve teacher absentee data
+// async function teacherAbsent(userId) {
+//   let rowss = [];
+//   try {
+//     const result = await db.query(`
+//       SELECT users.id, users.unique_id, users.full_name, users.mobile, users.created_date,
+//       DATE(attendance.checktime) AS date, TIME(MAX(attendance.checktime)) AS max_time,
+//       TIME(MIN(attendance.checktime)) AS min_time, designation.designation_name
+//       FROM users
+//       LEFT JOIN attendance ON attendance.user_id = users.id
+//       LEFT JOIN employee_promotion ON employee_promotion.user_id = users.id
+//       LEFT JOIN designation ON designation.id = employee_promotion.designation_id
+//       WHERE users.id = ?
+//       GROUP BY users.id, attendance.user_id
+//     `, userId);
+
+//     // Log the result to inspect what is being returned
+//     console.log('Query result:', result);
+
+//     // Assuming result is an array, either of rows or [rows, fields]
+//     const rows = Array.isArray(result) ? result : result[0];
+
+//     if (rows && rows.length > 0) {
+//       rowss.push(rows[0]);
+//     } else {
+//       console.log('No rows found for user ID:', userId);
+//     }
+//   } catch (error) {
+//     console.error('Error fetching data:', error);
+//   }
+
+//   return rowss;
+// }
+
+
+
+
+
+
+
+
+const smsSettings = require('../app/model/Admin/sms_settings_model/smsSettings')
 app.post('/smsSettings', smsSettings.updateSmsSettings)
 app.get('/smsSettings/', smsSettings.getSmsSettings)
 // app.post('/api/all_table_data', smsSettings.all_table_data)
 
 
 
-const moduleSettings = require('../model/Admin/module_settings_model/module_settings_model')
+const path = require('path');
+
+app.get('/get-css/:file', (req, res) => {
+  const cssFileName = req.params.file;
+  const cssFilePath = path.join(__dirname, 'css', cssFileName);
+
+  // Check if the CSS file exists
+  if (fs.existsSync(cssFilePath)) {
+    const cssContent = fs.readFileSync(cssFilePath, 'utf-8');
+    res.type('text/css').send(cssContent);
+  } else {
+    res.status(404).json({ error: 'CSS file not found' });
+  }
+});
+
+
+
+const moduleSettings = require('../app/model/Admin/module_settings_model/module_settings_model')
 app.post('/Admin/module_settings/module_settings_create', moduleSettings.module_setting_create)
 app.get('/Admin/module_settings/module_settings_all', moduleSettings.module_setting_list)
 
-const brandModel = require('../model/Admin/brand_model/brand_model')
+const brandModel = require('../app/model/Admin/brand_model/brand_model')
 const { default: axios } = require('axios')
 app.get('/status/all_status', brandModel.ListStatus)
 
 
 
+
+
+
+
+
+
+
+app.get('/calculateAmounts', (req, res) => {
+  // Query to calculate total payable amount
+  const payableQuery = 'SELECT SUM(payable_amount) AS total_payable FROM expense';
+  db.query(payableQuery, (err, payableResults) => {
+    if (err) {
+      console.error('Error calculating total payable amount: ' + err.stack);
+      res.status(500).send('Internal Server Error');
+      return;
+    }
+
+    const totalPayable = payableResults[0].total_payable || 0;
+
+    // Query to calculate total paid amount
+    const paidQuery = 'SELECT SUM(paid_amount) AS total_paid FROM expense';
+    db.query(paidQuery, (err, paidResults) => {
+      if (err) {
+        console.error('Error calculating total paid amount: ' + err.stack);
+        res.status(500).send('Internal Server Error');
+        return;
+      }
+
+      const totalPaid = paidResults[0].total_paid || 0;
+
+      // Respond with JSON containing total payable and total paid amounts
+      res.json({
+        totalPayable: totalPayable,
+        totalPaid: totalPaid
+      });
+    });
+  });
+});
+
+
+
+
+
+app.post('/reset-password/:id', (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  // Hash the new password
+  const hashedPassword = crypto.createHash('sha1').update(newPassword).digest('hex');
+
+  // Check the current password in the database
+  const checkPasswordQuery = 'SELECT password FROM users WHERE id = ?';
+
+  db.query(checkPasswordQuery, [req.params.id], (checkError, checkResults) => {
+    if (checkError) {
+      console.log('Error checking current password:', checkError);
+      res.status(500).send('Internal Server Error');
+      return;
+    }
+
+    // Check if the current password matches the one in the database
+    // const storedPassword = checkResults[0].password;
+    // const hashedPasswords = sha1(currentPassword);
+    // if (storedPassword !== hashedPasswords) {
+    //   console.log('Current password does not match');
+    //   res.status(400).send('Current password is incorrect');
+    //   return;
+    // }
+
+    // Update the password in the database
+    // const updatePasswordQuery = 'UPDATE users SET password = ? WHERE id = ?';
+    const updatePasswordQuery = 'UPDATE users SET password = ?, pass_reset = NULL WHERE id = ?';
+
+    db.query(updatePasswordQuery, [hashedPassword, req.params.id], (updateError, updateResults) => {
+      if (updateError) {
+        console.log('Error resetting password:', updateError);
+        res.status(500).send('Internal Server Error');
+      } else {
+        console.log('Password reset successfully');
+        res.status(200).send('Password reset successfully');
+      }
+    });
+  });
+});
+
+
+
+
+
+
+app.get('/api/menu', (req, res) => {
+  fetchMenuData(null, (err, result) => {
+    if (err) {
+      console.error('Error fetching menu data:', err);
+      res.status(500).json({ error: 'Internal Server Error' });
+      return;
+    }
+    res.json(result);
+  });
+});
+
+// Recursive function to fetch hierarchical data
+function fetchMenuData(parentId, callback) {
+  const query = `
+    SELECT
+      id,
+      title_en,
+      title_bn,
+      link_path,
+      link_path_type,
+      active,
+      parent_id,
+      admin_template_menu_id,
+      menu_icon,
+      icon_align,
+      content_en
+    FROM
+      admin_template_menu
+    WHERE
+      parent_id ${parentId ? `= ${parentId}` : 'IS NULL'}
+  `;
+
+  db.query(query, (err, rows) => {
+    if (err) {
+      callback(err, null);
+      return;
+    }
+
+    const menuItems = [];
+
+    // Iterate through the rows
+    for (const row of rows) {
+      const menuItem = {
+        id: row.id,
+        title_en: row.title_en,
+        title_bn: row.title_bn,
+        link_path: row.link_path,
+        link_path_type: row.link_path_type,
+        active: row.active,
+        parent_id: row.parent_id,
+        admin_template_menu_id: row.admin_template_menu_id,
+        menu_icon: row.menu_icon,
+        icon_align: row.icon_align,
+        content_en: row.content_en,
+        children: [], // Recursive call to fetch children
+      };
+
+      fetchMenuData(row.id, (err, children) => {
+        if (err) {
+          callback(err, null);
+          return;
+        }
+
+        menuItem.children = children;
+        menuItems.push(menuItem);
+
+        // If this is the last row, call the callback
+        if (menuItems.length === rows.length) {
+          callback(null, menuItems);
+        }
+      });
+    }
+
+    // If there are no rows, call the callback
+    if (rows.length === 0) {
+      callback(null, menuItems);
+    }
+  });
+}
+
+
+
+
+app.post('/insertData', (req, res) => {
+  const items = req.body;
+
+  if (!items || !Array.isArray(items)) {
+    return res.status(400).json({ error: 'Invalid data format' });
+  }
+
+  const insertMenuData = (menuData, parentId = null) => {
+    menuData.forEach(menu => {
+      const { children, ...menuWithoutChildren } = menu;
+      const dataToInsert = { ...menuWithoutChildren, parent_id: parentId };
+
+      db.query('INSERT INTO admin_template_menu SET ?', dataToInsert, (error, results, fields) => {
+        if (error) {
+          console.error(error);
+          return res.status(500).json({ error: 'Internal Server Error' });
+        }
+
+        const newParentId = results.insertId;
+
+        if (children && Array.isArray(children) && children.length > 0) {
+          insertMenuData(children, newParentId);
+        }
+      });
+    });
+  };
+
+  insertMenuData(items);
+
+  res.status(200).json({ success: true });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+app.get('/', (req, res) => {
+  res.send('Server running saklain mostak')
+})
 
 
 
@@ -819,10 +2266,6 @@ app.listen(PORT, () => {
 });
 
 
-
-app.get('/', (req, res) => {
-  res.send('Server running saklain mostak')
-})
 
 
 const port = process.env.PORT || 5002;
