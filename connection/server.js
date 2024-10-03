@@ -881,19 +881,19 @@ app.get('/account_report_combined', async (req, res) => {
 
   try {
     // Make the request for expense search
-    const expenseResponse = await axios.post(`http://192.168.0.185:5002/Admin/account_report/expense_search_account_reports`, {
+    const expenseResponse = await axios.post(`https://hr-allowance-new-server.vercel.app/Admin/account_report/expense_search_account_reports`, {
       fromDate,
       toDate
     });
 
     // Make the request for income search
-    const incomeResponse = await axios.post(`http://192.168.0.185:5002/Admin/account_report/account_report_income`, {
+    const incomeResponse = await axios.post(`https://hr-allowance-new-server.vercel.app/Admin/account_report/account_report_income`, {
       fromDate,
       toDate
     });
 
     // Fetch account head data
-    const accountHeadResponse = await axios.get(`http://192.168.0.185:5002/Admin/account_head/account_head_list`);
+    const accountHeadResponse = await axios.get(`https://hr-allowance-new-server.vercel.app/Admin/account_head/account_head_list`);
 
     // Combine results from both searches
     const combinedExpenseResults = expenseResponse.data.results || [];
@@ -964,12 +964,12 @@ app.get('/api/account_report', async (req, res) => {
   const toDate = req.query.toDate || new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
   try {
     // Make the first request for expense search
-    const expenseResponse = await axios.post(`http://192.168.0.185:5002/Admin/account_report/expense_search_account_reports`, {
+    const expenseResponse = await axios.post(`https://hr-allowance-new-server.vercel.app/Admin/account_report/expense_search_account_reports`, {
       fromDate, toDate
     });
 
     // Make the second request for income search
-    const incomeResponse = await axios.post(`http://192.168.0.185:5002/Admin/account_report/account_report_income`, {
+    const incomeResponse = await axios.post(`https://hr-allowance-new-server.vercel.app/Admin/account_report/account_report_income`, {
       fromDate, toDate
     });
 
