@@ -16,10 +16,6 @@ const db = require('../connection/config/database');
 
 console.log(db, 'db')
 
-
-// express dotenv cors crypto sha1 body-parser nodemailer mysql multer path wkhtmltopdf fs nodemon bcrypt axios puppeteer
-
-
 const transporter = nodemailer.createTransport({
   host: 'mail.urbanitsolution.com',
   port: 587,
@@ -849,10 +845,171 @@ app.get("/Admin/absent_sms/absent_create_manual_attendance", AttendanceModel.abs
 );
 
 
+const AccountReportModel = require('../model/Admin/account_report_model/account_report_model')
+
+app.post("/Admin/account_report/account_report_expense", AccountReportModel.expense_search_account_report
+);
+app.post("/Admin/account_report/expense_search_account_reports", AccountReportModel.expense_search_account_reports
+);
+app.post("/Admin/account_report/account_report_income", AccountReportModel.income_search_account_report
+);
+app.post("/Admin/account_report/account_report_salary", AccountReportModel.salary_search_account_report
+);
+app.post("/Admin/account_report/general_ledgers_print", AccountReportModel.general_ledgers_print
+);
+app.post("/Admin/account_report/general_ledgers_pdf", AccountReportModel.general_ledgers_pdf
+);
+app.post("/Admin/account_report/balance_sheet_print", AccountReportModel.balance_sheet_print
+);
+app.post("/Admin/account_report/balance_sheet_pdf", AccountReportModel.balance_sheet_pdf
+);
+app.post("/Admin/account_report/income_amount_account_report", AccountReportModel.income_amount_account_report
+);
+app.post("/Admin/account_report/expense_amount_account_report", AccountReportModel.expense_amount_account_report
+);
+app.post("/Admin/account_report/accounts_report_print", AccountReportModel.accounts_report_print
+);
+app.post("/Admin/account_report/accounts_report_pdf", AccountReportModel.accounts_report_pdf
+);
 
 
 
+app.get('/account_report_combined', async (req, res) => {
+  const today = new Date();
+  const fromDate = req.query.fromDate || new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+  const toDate = req.query.toDate || new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
 
+  try {
+    // Make the request for expense search
+    const expenseResponse = await axios.post(`http://192.168.0.185:5002/Admin/account_report/expense_search_account_reports`, {
+      fromDate,
+      toDate
+    });
+
+    // Make the request for income search
+    const incomeResponse = await axios.post(`http://192.168.0.185:5002/Admin/account_report/account_report_income`, {
+      fromDate,
+      toDate
+    });
+
+    // Fetch account head data
+    const accountHeadResponse = await axios.get(`http://192.168.0.185:5002/Admin/account_head/account_head_list`);
+
+    // Combine results from both searches
+    const combinedExpenseResults = expenseResponse.data.results || [];
+    const combinedIncomeResults = incomeResponse.data.results || [];
+    const accountHeadList = accountHeadResponse.data || [];
+
+    if (combinedExpenseResults.length === 0 && combinedIncomeResults.length === 0) {
+      return res.status(200).json({ message: 'Nothing found!', results: [] });
+    }
+
+    // Group by 'paid_by' for expense results
+    const expenseByPaidBy = combinedExpenseResults.reduce((acc, result) => {
+      if (!acc[result.paid_by]) {
+        acc[result.paid_by] = 0;
+      }
+      acc[result.paid_by] += result.sub_total;
+      return acc;
+    }, {});
+
+    // Group by 'paid_by' for income results
+    const incomeByPaidBy = combinedIncomeResults.reduce((acc, result) => {
+      if (!acc[result.paid_by]) {
+        acc[result.paid_by] = 0;
+      }
+      acc[result.paid_by] += result.sub_total;
+      return acc;
+    }, {});
+
+    // Calculate the total sub_totals for both expense and income
+    const subTotalExpense = Object.values(expenseByPaidBy).reduce((sum, value) => sum + value, 0);
+    const subTotalIncome = Object.values(incomeByPaidBy).reduce((sum, value) => sum + value, 0);
+
+    let totalAmountSum = 0;
+
+    // Map over account head list and calculate total amounts
+    const accountRows = accountHeadList.map((account) => {
+      const expenseAmount = expenseByPaidBy[account.id] || 0;
+      const incomeAmount = incomeByPaidBy[account.id] || 0;
+      // const totalAmount = expenseAmount + incomeAmount;
+      const totalAmount = incomeAmount - expenseAmount;
+
+      totalAmountSum += totalAmount;
+
+      return {
+        account_head_name: account.account_head_name,
+        totalAmount: totalAmount.toLocaleString(),
+      };
+    });
+
+    // Send the final response
+    res.status(200).json({
+      totalAmountSum,
+      accountRows,
+      subTotalExpense,
+      subTotalIncome,
+    });
+
+  } catch (error) {
+    console.error("An error occurred:", error);
+    res.status(500).json({ error: "An error occurred while processing data." });
+  }
+});
+
+app.get('/api/account_report', async (req, res) => {
+  // const { fromDate, toDate } = req.query; // Get parameters from query
+  const today = new Date();
+  const fromDate = req.query.fromDate || new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+  const toDate = req.query.toDate || new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+  try {
+    // Make the first request for expense search
+    const expenseResponse = await axios.post(`http://192.168.0.185:5002/Admin/account_report/expense_search_account_reports`, {
+      fromDate, toDate
+    });
+
+    // Make the second request for income search
+    const incomeResponse = await axios.post(`http://192.168.0.185:5002/Admin/account_report/account_report_income`, {
+      fromDate, toDate
+    });
+
+    // Combine results from both searches
+    const combinedResults = expenseResponse.data.results;
+    const combinedResultsIncome = incomeResponse.data.results;
+
+    if (combinedResults.length === 0 && combinedResultsIncome.length === 0) {
+      return res.status(404).json({ message: 'Nothing found!' });
+    } else {
+      const sub_total = combinedResults.reduce((sum, result) => sum + result.sub_total, 0);
+      const sub_totalIncome = combinedResultsIncome.reduce((sum, result) => sum + result.sub_total, 0);
+
+      // Category-wise subtotals
+      const expenseCategoryWiseSubTotal = combinedResults.reduce((acc, result) => {
+        const { expense_category_id, sub_total } = result;
+        acc[expense_category_id] = (acc[expense_category_id] || 0) + sub_total;
+        return acc;
+      }, {});
+
+      const incomeCategoryWiseSubTotal = combinedResultsIncome.reduce((acc, result) => {
+        const { income_category_id, sub_total } = result;
+        acc[income_category_id] = (acc[income_category_id] || 0) + sub_total;
+        return acc;
+      }, {});
+
+      res.json({
+        searchResults: combinedResults,
+        incomeSearch: combinedResultsIncome,
+        subTotal: sub_total,
+        subTotalIncome: sub_totalIncome,
+        expenseCategorySubTotal: expenseCategoryWiseSubTotal,
+        incomeCategorySubTotal: incomeCategoryWiseSubTotal,
+      });
+    }
+  } catch (error) {
+    console.error("Error during search:", error);
+    res.status(500).json({ message: "An error occurred during search." });
+  }
+});
 
 
 
@@ -966,7 +1123,7 @@ app.get('/absent/absent_online_entry_employee', (req, res) => {
 
               if (absent_count > 0) {
 
-                // let current_time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+                let current_time = new Date().toLocaleTimeString('en-GB', { hour12: false });
 
                 let data4 = [];
                 console.log(data4, 'data4 919')
@@ -1003,6 +1160,8 @@ app.get('/absent/absent_online_entry_employee', (req, res) => {
                                     console.log(data4, '950')
                                     console.log(max_late_time, 'shift_times', '945')
                                     console.log(max_end_time, 'shift_times', '945')
+                                    console.log(current_time, 'shift_times', '945')
+                                    // (max_late_time < current_time && max_end_time > current_time
                                     if (max_late_time && max_end_time) {
                                       data4.push({
                                         user_id: user_id,
@@ -1105,24 +1264,165 @@ app.get('/absent/absent_online_entry_employee', (req, res) => {
   data_error.push({ api_exec_time: diff_seconds });
 });
 
-async function sendSms(mobile, msg) {
-  const quick_api = '7ae89887eac6055a2b9adc494ca3b902';
-  const apiUrl = 'https://quicksmsapp.com/Api/sms/campaign_api';
+
+
+
+// const axios = require('axios'); // Import axios for API requests
+
+// Function to fetch API data
+// async function fetchApiData() {
+//   try {
+//     const res = await axios.get(`http://192.168.0.185:5002/Admin/sms_api/sms_api_all`);
+//     const apiData = res.data; // Axios stores response data in the 'data' property
+//     return apiData;
+//   } catch (error) {
+//     console.error('Error fetching API data:', error);
+//     return [];
+//   }
+// }
+
+// // Main function to handle the API URL construction and fetch
+// async function processApiData() {
+//   const apiData = await fetchApiData(); // Fetching API data
+
+//   // Filter apiData for entries with status_url === '1'
+//   const filteredApiData = apiData.filter(item => item.status_url === '1');
+
+//   // Check if there are any valid entries after filtering
+//   if (filteredApiData.length === 0 || !filteredApiData[0].sms_api_params || filteredApiData[0].sms_api_params.length === 0) {
+//     console.log('No valid data available');
+//     return;
+//   }
+
+//   // Use the first valid entry for further processing
+//   const apiEntry = filteredApiData[0];
+
+//   // Sort the sms_api_params based on the options field
+//   const sortedParams = apiEntry.sms_api_params.sort((a, b) => a.options - b.options);
+
+//   // Construct the query string from the sorted parameters
+//   const queryParams = sortedParams.map(param => {
+//     const key = param.options === 1 ? 'mobile' : (param.sms_key === 'number' ? 'mobile' : param.sms_key);
+//     return `${key}=${encodeURIComponent(param.sms_value)}`;
+//   }).join('&');
+
+//   // Final URL for API call
+//   const constructedUrl = `${apiEntry.main_url}${queryParams}`;
+//   console.log('Constructed API URL:', constructedUrl); // Log the constructed URL
+
+//   // Define a flag or condition to prevent automatic API call
+//   const shouldFetch = false; // Change this based on your logic
+
+//   if (shouldFetch) {
+//     // Fetching the API data
+//     try {
+//       const response = await axios.get(constructedUrl);
+//       console.log('API Response:', response.data); // Axios stores the response data in 'data'
+//     } catch (error) {
+//       console.error('Error fetching the constructed URL:', error);
+//     }
+//   }
+// }
+
+// Call the main function to execute the logic
+// processApiData();
+
+// app.get("/Admin/sms_api/sms_api_all_status_1", processApiData
+// );
+
+async function fetchApiData() {
   try {
-    const response = await axios.get(apiUrl, {
+    const response = await axios.get(`http://192.168.0.185:5002/Admin/sms_api/sms_api_all`);
+    return response.data; // Return the data fetched from the API
+  } catch (error) {
+    console.error('Error fetching API data:', error);
+    throw error; // Handle and propagate the error
+  }
+}
+
+// This function is responsible for sending the SMS
+async function sendSms(mobile, msg) {
+  try {
+    // Fetch the SMS API data
+    const apiData = await fetchApiData();
+
+    // Filter the API data for entries with status_url === '1'
+    const filteredApiData = apiData.filter(item => item.status_url === '1');
+
+    // If no valid API data is found, return or throw an error
+    if (filteredApiData.length === 0 || !filteredApiData[0].sms_api_params || filteredApiData[0].sms_api_params.length === 0) {
+      throw new Error('No valid API data found for sending SMS');
+    }
+
+    // Use the first valid entry for further processing
+    const apiEntry = filteredApiData[0];
+
+    // Sort the sms_api_params based on the options field
+    const sortedParams = apiEntry.sms_api_params.sort((a, b) => a.options - b.options);
+
+    // Construct the query string from the sorted parameters
+    const queryParams = sortedParams.map(param => {
+      const key = param.options === 1 ? 'mobile' : (param.sms_key === 'number' ? 'mobile' : param.sms_key);
+      return `${key}=${encodeURIComponent(param.sms_value)}`;
+    }).join('&');
+
+    // Construct the final URL for the API call
+    const constructedUrl = `${apiEntry.main_url}${queryParams}`;
+    const [baseUrl, paramString] = constructedUrl.split('?');
+
+    // Check if paramString is defined before attempting to split
+    const firstParam = paramString ? paramString.split('&')[0] : null;
+
+    let formattedUrl;
+    if (firstParam) {
+      // Construct the formatted URL using the base URL and the first parameter
+      formattedUrl = `${baseUrl}?${firstParam}`;
+    } else {
+      console.log('No parameters found.');
+      return;
+    }
+
+    console.log('Formatted URL:', formattedUrl);
+    // Make the API request to send the SMS
+    const response = await axios.get(formattedUrl, {
       params: {
-        quick_api,
         mobile,
         msg,
       },
     });
+
+    // Log and return the response from the SMS API
     console.log('SMS sent:', response.data);
     return response.data;
+
   } catch (error) {
+    // Handle any errors that occur during the process
     console.error('Error sending SMS:', error);
     throw error;
   }
 }
+// async function sendSms(mobile, msg) {
+
+
+//   const quick_api = '7ae89887eac6055a2b9adc494ca3b902';
+//   const apiUrl = 'https://quicksmsapp.com/Api/sms/campaign_api';
+//   try {
+//     const response = await axios.get(apiUrl, {
+//       params: {
+//         quick_api,
+//         mobile,
+//         msg,
+//       },
+//     });
+//     console.log('SMS sent:', response.data);
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error sending SMS:', error);
+//     throw error;
+//   }
+// }
+
+// app.get('/all_data', sendSms)
 
 async function teacherEmployeeAbsentSmsSubmitAuto(usersIdArr, absentDate, inserted_absent_data) {
 
@@ -1328,6 +1628,665 @@ async function employeeAbsentSmsDataInsert(usersIdArr, smsMessages, absentDate, 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const quick_api = '7ae89887eac6055a2b9adc494ca3b902'
+// const smsEncode = encodeURIComponent(teAbsenceSms);
+// const smsApiParam = `?quick_api=${quick_api}&mobile=${content.mobile}&msg=${smsEncode}`;
+// const apiUrl = `https://quicksmsapp.com/Api/sms/campaign_api${smsApiParam}`;
+// apiData.push(apiUrl);
+
+// const axios = require('axios'); // Make sure to import axios if not already imported
+
+// async function sendSms(mobile, msg) {
+//   const quick_api = '7ae89887eac6055a2b9adc494ca3b902';
+//   const apiUrl = 'https://quicksmsapp.com/Api/sms/campaign_api';
+//   try {
+//     const response = await axios.get(apiUrl, {
+//       params: {
+//         quick_api,
+//         mobile,
+//         msg,
+//       },
+//     });
+//     console.log('SMS sent:', response.data);
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error sending SMS:', error);
+//     throw error;
+//   }
+// }
+// async function teacherEmployeeAbsentSmsSubmitAuto(usersIdArr, absentDate) {
+
+//   const smsApi = sendSms();
+//   const apiData = [];
+//   const smsMessages = [];
+
+//   console.log(smsMessages)
+//   console.log(apiData)
+//   for (let userId of usersIdArr) {
+//     try {
+//       // Fetch user details and attendance
+//       const userResult = await new Promise((resolve, reject) => {
+//         const query = `
+//           SELECT users.id, users.unique_id, users.full_name, users.mobile, users.created_date, 
+//                  DATE(attendance.checktime) AS date, TIME(MAX(attendance.checktime)) AS max_time, 
+//                  TIME(MIN(attendance.checktime)) AS min_time, designation.designation_name 
+//           FROM users 
+//           LEFT JOIN attendance ON attendance.user_id = users.id 
+//           LEFT JOIN employee_promotion ON employee_promotion.user_id = users.id 
+//           LEFT JOIN designation ON designation.id = employee_promotion.designation_id 
+//           WHERE users.id = ? 
+//           GROUP BY users.id, attendance.user_id`;
+//         connection.query(query, [userId], (error, result) => {
+//           if (error) {
+//             console.error(`Error fetching user data for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result);
+//         });
+//       });
+
+//       if (userResult.length === 0 || !userResult[0].mobile) {
+//         console.log(`Mobile not found for user ${userId}`);
+//         continue;
+//       }
+
+//       const content = userResult[0];
+
+//       // Fetch SMS settings
+//       const smsSettingsRow = await new Promise((resolve, reject) => {
+//         const query = 'SELECT * FROM sms_settings WHERE id = 1';
+//         db.query(query, (error, result) => {
+//           if (error) {
+//             console.error(`Error fetching SMS settings for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result[0]);
+//         });
+//       });
+
+//       if (smsSettingsRow.sms_system !== 1 || smsSettingsRow.auto_te_absence !== 1) {
+//         console.log(`SMS system or auto absence not enabled for user ${userId}`);
+//         continue;
+//       }
+
+//       // Check if absence SMS already exists
+//       const absentData = await new Promise((resolve, reject) => {
+//         const query = 'SELECT id FROM absent_sms WHERE user_id = ? AND absent_date = ?';
+//         db.query(query, [userId, absentDate], (error, result) => {
+//           if (error) {
+//             console.error(`Error checking absent data for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result);
+//         });
+//       });
+
+//       if (absentData.length === 0) {
+//         // Fetch user shift
+//         const usersShiftRow = await new Promise((resolve, reject) => {
+//           const query = 'SELECT school_shift_id FROM employee_promotion WHERE user_id = ?';
+//           db.query(query, [userId], (error, result) => {
+//             if (error) {
+//               console.error(`Error fetching shift data for userId ${userId}:`, error);
+//               return reject(error);
+//             }
+//             resolve(result);
+//           });
+//         });
+
+//         const usersShiftArr = usersShiftRow[0].school_shift_id.split(',');
+//         console.log(usersShiftArr, 'usersShiftArr 1135')
+//         // Prepare the SMS message
+//         const predefinedVar = [
+//           '[[company_name]]',
+//           '[[full_name]]',
+//           '[[teacher/employee_id]]',
+//           '[[teacher/employee_designation]]',
+//           '[[absent_date]]',
+//           '[[sms_time]]'
+//         ];
+
+//         const replacedVar = [
+//           'companyInfo().name',
+//           content.full_name,
+//           content.unique_id,
+//           content.designation_name,
+//           absentDate,
+//           new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })
+//         ];
+//         console.log(replacedVar)
+//         let teAbsenceSms = smsSettingsRow?.te_absence;
+//         predefinedVar.forEach((varItem, index) => {
+//           teAbsenceSms = teAbsenceSms?.replace(varItem, replacedVar[index]);
+//         });
+
+//         const smsEncode = encodeURIComponent(teAbsenceSms);
+//         const smsApiParam = smsApi.sms_api_param?.replace(smsApi.sms_num, content.mobile).replace(smsApi.sms_msg, smsEncode);
+//         const apiUrl = `${smsApi.main_url}${smsApiParam}`;
+
+//         apiData?.push(apiUrl);
+//         smsMessages?.push({ user_id: userId, message: teAbsenceSms, mobile: content.mobile });
+//       }
+//     } catch (error) {
+//       console.error(`Error processing userId ${userId}:`, error);
+//     }
+//   }
+
+//   // Send SMS via axios
+//   for (let url of apiData) {
+//     try {
+//       await axios.get(url);
+//     } catch (error) {
+//       console.error(`Error sending SMS:`, error);
+//     }
+//   }
+
+//   // Insert SMS campaign
+//   const totalNumber = usersIdArr.length;
+//   const smsCampaignData = {
+//     name: 'teacher_employee_absent',
+//     category: 'Enter Number',
+//     created_by: 6,
+//     one_time: 1,
+//     total_number: totalNumber,
+//     status: 2
+//   };
+
+//   try {
+//     const insertCampaign = await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO sms_campaign SET ?', smsCampaignData, (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting SMS campaign:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+//     const campaignId = insertCampaign.insertId;
+
+//     // Insert SMS campaign logs
+//     const smsCampaignLogData = smsMessages.map(smsData => ({
+//       campaign_id: campaignId,
+//       category: 'Enter Number',
+//       sender_id: 6,
+//       status: 2,
+//       user_id: smsData.user_id,
+//       campaign_category: 19,
+//       message: smsData.message,
+//       number: smsData.mobile,
+//       response: 'Delivered'
+//     }));
+
+//     console.log(smsCampaignLogData, 'smsCampaignLogData 1217')
+
+//     await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO sms_campaign_log (campaign_id, category, sender_id, status, user_id, campaign_category, message, number, response) VALUES ?', [smsCampaignLogData.map(Object.values)], (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting SMS campaign logs:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+
+//     // Get inserted campaign log IDs
+//     const logIds = await new Promise((resolve, reject) => {
+//       const query = `SELECT GROUP_CONCAT(id) as sms_log_id FROM sms_campaign_log WHERE campaign_id = ?`;
+//       db.query(query, [campaignId], (error, result) => {
+//         if (error) {
+//           console.error(`Error fetching SMS log IDs for campaignId ${campaignId}:`, error);
+//           return reject(error);
+//         }
+//         resolve(result[0].sms_log_id.split(','));
+//       });
+//     });
+
+//     // Insert absent SMS
+//     const absentSmsData = usersIdArr.map((userId, index) => ({
+//       user_id: userId,
+//       absent_date: absentDate,
+//       sms_campaign_log_id: logIds[index]
+//     }));
+
+//     await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO absent_sms (user_id, absent_date, sms_campaign_log_id) VALUES ?', [absentSmsData.map(Object.values)], (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting absent SMS data:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+
+//   } catch (error) {
+//     console.error('Error during SMS campaign creation or logging:', error);
+//   }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// async function teacherEmployeeAbsentSmsSubmitAuto(usersIdArr, absentDate) {
+//   const smsApi = sendSms();
+//   const apiData = [];
+//   const smsMessages = [];
+
+//   for (let userId of usersIdArr) {
+//     try {
+//       // Fetch user details and attendance
+//       const userResult = await new Promise((resolve, reject) => {
+//         const query = `
+//           SELECT users.id, users.unique_id, users.full_name, users.mobile, users.created_date, 
+//                  DATE(attendance.checktime) AS date, TIME(MAX(attendance.checktime)) AS max_time, 
+//                  TIME(MIN(attendance.checktime)) AS min_time, designation.designation_name 
+//           FROM users 
+//           LEFT JOIN attendance ON attendance.user_id = users.id 
+//           LEFT JOIN employee_promotion ON employee_promotion.user_id = users.id 
+//           LEFT JOIN designation ON designation.id = employee_promotion.designation_id 
+//           WHERE users.id = ? 
+//           GROUP BY users.id, attendance.user_id`;
+//         connection.query(query, [userId], (error, result) => {
+//           if (error) {
+//             console.error(`Error fetching user data for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result);
+//         });
+//       });
+
+//       if (userResult.length === 0 || !userResult[0].mobile) {
+//         console.log(`Mobile not found for user ${userId}`);
+//         continue;
+//       }
+
+//       const content = userResult[0];
+
+//       // Fetch SMS settings
+//       const smsSettingsRow = await new Promise((resolve, reject) => {
+//         const query = 'SELECT * FROM sms_settings WHERE id = 1';
+//         db.query(query, (error, result) => {
+//           if (error) {
+//             console.error(`Error fetching SMS settings for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result[0]);
+//         });
+//       });
+
+//       if (smsSettingsRow.sms_system !== 1 || smsSettingsRow.auto_te_absence !== 1) {
+//         console.log(`SMS system or auto absence not enabled for user ${userId}`);
+//         continue;
+//       }
+
+//       // Check if absence SMS already exists
+//       const absentData = await new Promise((resolve, reject) => {
+//         const query = 'SELECT id FROM absent_sms WHERE user_id = ? AND absent_date = ?';
+//         db.query(query, [userId, absentDate], (error, result) => {
+//           if (error) {
+//             console.error(`Error checking absent data for userId ${userId}:`, error);
+//             return reject(error);
+//           }
+//           resolve(result);
+//         });
+//       });
+
+//       if (absentData.length === 0) {
+//         // Fetch user shift
+//         const usersShiftRow = await new Promise((resolve, reject) => {
+//           const query = 'SELECT school_shift_id FROM employee_promotion WHERE user_id = ?';
+//           db.query(query, [userId], (error, result) => {
+//             if (error) {
+//               console.error(`Error fetching shift data for userId ${userId}:`, error);
+//               return reject(error);
+//             }
+//             resolve(result);
+//           });
+//         });
+
+//         const usersShiftArr = usersShiftRow[0].school_shift_id.split(',');
+
+//         // Prepare the SMS message
+//         const predefinedVar = [
+//           '[[company_name]]',
+//           '[[full_name]]',
+//           '[[teacher/employee_id]]',
+//           '[[teacher/employee_designation]]',
+//           '[[absent_date]]',
+//           '[[sms_time]]'
+//         ];
+
+//         const replacedVar = [
+//           'companyInfo().name',
+//           content.full_name,
+//           content.unique_id,
+//           content.designation_name,
+//           absentDate,
+//           new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })
+//         ];
+
+//         let teAbsenceSms = smsSettingsRow.te_absence;
+//         predefinedVar.forEach((varItem, index) => {
+//           teAbsenceSms = teAbsenceSms?.replace(varItem, replacedVar[index]);
+//         });
+
+//         const smsEncode = encodeURIComponent(teAbsenceSms);
+//         const smsApiParam = smsApi.sms_api_param?.replace(smsApi.sms_num, content.mobile).replace(smsApi.sms_msg, smsEncode);
+//         const apiUrl = `${smsApi.main_url}${smsApiParam}`;
+
+//         apiData.push(apiUrl);
+//         smsMessages.push({ user_id: userId, message: teAbsenceSms, mobile: content.mobile });
+//       }
+//     } catch (error) {
+//       console.error(`Error processing userId ${userId}:`, error);
+//     }
+//   }
+
+//   // Send SMS via axios
+//   for (let url of apiData) {
+//     try {
+//       await axios.get(url);
+//     } catch (error) {
+//       console.error(`Error sending SMS:`, error);
+//     }
+//   }
+
+//   // Insert SMS campaign
+//   const totalNumber = usersIdArr.length;
+//   const smsCampaignData = {
+//     name: 'teacher_employee_absent',
+//     category: 'Enter Number',
+//     created_by: 6,
+//     one_time: 1,
+//     total_number: totalNumber,
+//     status: 2
+//   };
+
+//   try {
+//     const insertCampaign = await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO sms_campaign SET ?', smsCampaignData, (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting SMS campaign:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+//     const campaignId = insertCampaign.insertId;
+
+//     // Insert SMS campaign logs
+//     const smsCampaignLogData = smsMessages.map(smsData => ({
+//       campaign_id: campaignId,
+//       category: 'Enter Number',
+//       sender_id: 6,
+//       status: 2,
+//       user_id: smsData.user_id,
+//       campaign_category: 19,
+//       message: smsData.message,
+//       number: smsData.mobile,
+//       response: 'Delivered'
+//     }));
+
+//     await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO sms_campaign_log (campaign_id, category, sender_id, status, user_id, campaign_category, message, number, response) VALUES ?', [smsCampaignLogData.map(Object.values)], (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting SMS campaign logs:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+
+//     // Get inserted campaign log IDs
+//     const logIds = await new Promise((resolve, reject) => {
+//       const query = `SELECT GROUP_CONCAT(id) as sms_log_id FROM sms_campaign_log WHERE campaign_id = ?`;
+//       db.query(query, [campaignId], (error, result) => {
+//         if (error) {
+//           console.error(`Error fetching SMS log IDs for campaignId ${campaignId}:`, error);
+//           return reject(error);
+//         }
+//         resolve(result[0].sms_log_id.split(','));
+//       });
+//     });
+
+//     // Insert absent SMS
+//     const absentSmsData = usersIdArr.map((userId, index) => ({
+//       user_id: userId,
+//       absent_date: absentDate,
+//       sms_campaign_log_id: logIds[index]
+//     }));
+
+//     await new Promise((resolve, reject) => {
+//       db.query('INSERT INTO absent_sms (user_id, absent_date, sms_campaign_log_id) VALUES ?', [absentSmsData.map(Object.values)], (error, result) => {
+//         if (error) {
+//           console.error(`Error inserting absent SMS data:`, error);
+//           return reject(error);
+//         }
+//         resolve(result);
+//       });
+//     });
+
+//   } catch (error) {
+//     console.error('Error during SMS campaign creation or logging:', error);
+//   }
+// }
+
+// async function teacherEmployeeAbsentSmsSubmitAuto(usersIdArr, absentDate) {
+//   const smsApi = sendSms();
+//   const apiData = [];
+//   const smsMessages = [];
+
+//   for (let userId of usersIdArr) {
+
+//     console.log(userId, 'userId 1066')
+//     // const content = await teacherAbsent(archive);
+
+
+//     const result = await new Promise((resolve, reject) => {
+//       const query = ' SELECT users.id, users.unique_id, users.full_name, users.mobile, users.created_date, DATE(attendance.checktime) AS date, TIME(MAX(attendance.checktime)) AS max_time, TIME(MIN(attendance.checktime)) AS min_time, designation.designation_name FROM users LEFT JOIN attendance ON attendance.user_id = users.id LEFT JOIN employee_promotion ON employee_promotion.user_id = users.id LEFT JOIN designation ON designation.id = employee_promotion.designation_id WHERE users.id = ? GROUP BY users.id, attendance.user_id';
+//       connection.query(query, [userId], (error, result) => {
+//         if (error) return reject(error);
+//         resolve(result);
+//       });
+//     });
+
+//     console.log(result[0], 'userId 1069');
+//     const content = result[0]
+//     console.log(content, 'userId 1069 content')
+//     console.log(content.mobile, 'userId 1081 content')
+//     if (content && content.mobile) {
+//       // Fetch SMS settings
+//       const smsSettingsRow = await db.query(`SELECT * FROM sms_settings WHERE id='1'`);
+//       if (smsSettingsRow.sms_system === 1) {
+//         if (smsSettingsRow.auto_te_absence === 1) {
+//           const absentData = await db.query(`SELECT id FROM absent_sms WHERE user_id='${userId}' AND absent_date='${absentDate}'`);
+//           console.log(absentData, 'absentData 1079')
+//           if (absentData.length === 0) {
+//             const usersShiftRow = await db.query(`SELECT school_shift_id FROM employee_promotion WHERE user_id=${userId}`);
+//             const usersShiftArr = usersShiftRow[0].school_shift_id.split(',');
+//             console.log(usersShiftArr)
+//             if (smsSettingsRow.te_one_time === 1) {
+//               const predefinedVar = [
+//                 '[[company_name]]',
+//                 '[[full_name]]',
+//                 '[[teacher/employee_id]]',
+//                 '[[teacher/employee_designation]]',
+//                 '[[absent_date]]',
+//                 '[[sms_time]]'
+//               ];
+//               const replacedVar = [
+//                 'companyInfo().name',
+//                 content.full_name,
+//                 content.unique_id,
+//                 content.designation_name,
+//                 absentDate,
+//                 new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })
+//               ];
+//               let teAbsenceSms = smsSettingsRow.te_absence;
+//               predefinedVar.forEach((varItem, index) => {
+//                 teAbsenceSms = teAbsenceSms.replace(varItem, replacedVar[index]);
+//               });
+
+//               const smsEncode = encodeURIComponent(teAbsenceSms);
+//               const smsApiParam = smsApi.sms_api_param.replace(smsApi.sms_num, content.mobile).replace(smsApi.sms_msg, smsEncode);
+//               const apiUrl = `${smsApi.main_url}${smsApiParam}`;
+//               apiData.push(apiUrl);
+//               smsMessages.push({ user_id: userId, message: teAbsenceSms, mobile: content.mobile });
+//             } else {
+//               const smsSettingsShiftArr = smsSettingsRow.te_absent_shift.split(',');
+//               const commonShifts = usersShiftArr.filter(shift => smsSettingsShiftArr.includes(shift));
+
+//               for (let shift of commonShifts) {
+//                 const predefinedVar = [
+//                   '[[company_name]]',
+//                   '[[full_name]]',
+//                   '[[teacher/employee_id]]',
+//                   '[[teacher/employee_designation]]',
+//                   '[[absent_date]]',
+//                   '[[sms_time]]'
+//                 ];
+//                 const replacedVar = [
+//                   companyInfo().name,
+//                   content.full_name,
+//                   content.unique_id,
+//                   content.designation_name,
+//                   absentDate,
+//                   new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })
+//                 ];
+//                 let teAbsenceSms = smsSettingsRow.te_absence;
+//                 predefinedVar.forEach((varItem, index) => {
+//                   teAbsenceSms = teAbsenceSms.replace(varItem, replacedVar[index]);
+//                 });
+
+//                 const smsEncode = encodeURIComponent(teAbsenceSms);
+//                 const smsApiParam = smsApi.sms_api_param.replace(smsApi.sms_num, content.mobile).replace(smsApi.sms_msg, smsEncode);
+//                 const apiUrl = `${smsApi.main_url}${smsApiParam}`;
+//                 apiData.push(apiUrl);
+//                 smsMessages.push({ user_id: userId, message: teAbsenceSms, mobile: content.mobile });
+//               }
+//             }
+//             msg = "<span class='text-success mt-3'>Delivered</span>";
+//           }
+//         } else {
+//           msg = "<span class='text-danger mt-3'>Teacher/Employee Absent setting not enabled</span>";
+//         }
+//       } else {
+//         msg = "<span class='text-danger mt-3'>SMS system not enabled</span>";
+//       }
+//     } else {
+//       msg = "<span class='text-danger mt-3'>Mobile not found</span>";
+//     }
+//   }
+
+//   // Send SMS via axios
+//   for (let url of apiData) {
+//     await axios.get(url);
+//   }
+
+//   // Insert SMS campaign
+//   const totalNumber = usersIdArr.length;
+//   const smsCampaignData = {
+//     name: 'teacher_employee_absent',
+//     category: 'Enter Number',
+//     created_by: 6,
+//     one_time: 1,
+//     total_number: totalNumber,
+//     status: 2
+//   };
+//   console.log(smsCampaignData, 'smsCampaignData 1191')
+//   const insertCampaign = await db.query('INSERT INTO sms_campaign SET ?', smsCampaignData);
+//   const campaignId = insertCampaign.insertId;
+
+//   // Insert SMS campaign logs
+//   console.log(smsMessages, 'smsMessages 1196')
+//   const smsCampaignLogData = smsMessages.map(smsData => ({
+//     campaign_id: campaignId,
+//     category: 'Enter Number',
+//     sender_id: 6,
+//     status: 2,
+//     user_id: smsData.user_id,
+//     campaign_category: 19,
+//     message: smsData.message,
+//     number: smsData.mobile,
+//     response: 'Delivered'
+//   }));
+//   await db.query('INSERT INTO sms_campaign_log (campaign_id, category, sender_id, status, user_id, campaign_category, message, number, response) VALUES ?', [smsCampaignLogData.map(Object.values)]);
+
+//   // Get inserted campaign log IDs
+//   const logIds = await db.query(`SELECT GROUP_CONCAT(id) as sms_log_id FROM sms_campaign_log WHERE campaign_id = '${campaignId}'`);
+//   const logIdArr = logIds
+//   // const logIdArr = logIds[0].sms_log_id.split(',');
+
+//   // Insert absent SMS
+//   const absentSmsData = usersIdArr.map((userId, index) => ({
+//     user_id: userId,
+//     absent_date: absentDate,
+//     sms_campaign_log_id: logIdArr[index]
+//   }));
+//   await db.query('INSERT INTO absent_sms (user_id, absent_date, sms_campaign_log_id) VALUES ?', [absentSmsData.map(Object.values)]);
+// }
+
+
+
+
+
+
+
+// Function to retrieve teacher absentee data
+// async function teacherAbsent(userId) {
+//   let rowss = [];
+//   try {
+//     const result = await db.query(`
+//       SELECT users.id, users.unique_id, users.full_name, users.mobile, users.created_date,
+//       DATE(attendance.checktime) AS date, TIME(MAX(attendance.checktime)) AS max_time,
+//       TIME(MIN(attendance.checktime)) AS min_time, designation.designation_name
+//       FROM users
+//       LEFT JOIN attendance ON attendance.user_id = users.id
+//       LEFT JOIN employee_promotion ON employee_promotion.user_id = users.id
+//       LEFT JOIN designation ON designation.id = employee_promotion.designation_id
+//       WHERE users.id = ?
+//       GROUP BY users.id, attendance.user_id
+//     `, userId);
+
+//     // Log the result to inspect what is being returned
+//     console.log('Query result:', result);
+
+//     // Assuming result is an array, either of rows or [rows, fields]
+//     const rows = Array.isArray(result) ? result : result[0];
+
+//     if (rows && rows.length > 0) {
+//       rowss.push(rows[0]);
+//     } else {
+//       console.log('No rows found for user ID:', userId);
+//     }
+//   } catch (error) {
+//     console.error('Error fetching data:', error);
+//   }
+
+//   return rowss;
+// }
 
 
 
@@ -1579,6 +2538,35 @@ app.post('/insertData', (req, res) => {
 
   res.status(200).json({ success: true });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
