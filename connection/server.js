@@ -1272,7 +1272,7 @@ app.get('/absent/absent_online_entry_employee', (req, res) => {
 // Function to fetch API data
 // async function fetchApiData() {
 //   try {
-//     const res = await axios.get(`http://192.168.0.185:5002/Admin/sms_api/sms_api_all`);
+//     const res = await axios.get(`https://hr-allowance-new-server.vercel.app/Admin/sms_api/sms_api_all`);
 //     const apiData = res.data; // Axios stores response data in the 'data' property
 //     return apiData;
 //   } catch (error) {
@@ -1332,7 +1332,7 @@ app.get('/absent/absent_online_entry_employee', (req, res) => {
 
 async function fetchApiData() {
   try {
-    const response = await axios.get(`http://192.168.0.185:5002/Admin/sms_api/sms_api_all`);
+    const response = await axios.get(`https://hr-allowance-new-server.vercel.app/Admin/sms_api/sms_api_all`);
     return response.data; // Return the data fetched from the API
   } catch (error) {
     console.error('Error fetching API data:', error);
